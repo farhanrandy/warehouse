@@ -1,9 +1,9 @@
 package repositories
 
 import (
-    "context"
-    "database/sql"
-    "warehouse/models"
+	"context"
+	"database/sql"
+	"warehouse/models"
 )
 
 // StokRepo provides read operations for stock and history.
