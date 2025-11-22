@@ -1,14 +1,15 @@
 package handlers
 
 import (
-    "context"
-    "net/http"
-    "time"
-    "encoding/json"
-    "strconv"
+	"context"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"time"
 
-    "warehouse/repositories"
-    "github.com/go-chi/chi/v5"
+	"warehouse/repositories"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // StokHandler provides endpoints for stock and history read operations.

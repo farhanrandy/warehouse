@@ -1,14 +1,14 @@
 package main
 
 import (
-    "log"
-    "net/http"
+	"log"
+	"net/http"
 
-    "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 
-    "warehouse/config"
-    "warehouse/handlers"
-    "warehouse/repositories"
+	"warehouse/config"
+	"warehouse/handlers"
+	"warehouse/repositories"
 )
 
 func main() {

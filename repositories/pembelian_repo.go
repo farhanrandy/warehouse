@@ -1,13 +1,13 @@
 package repositories
 
 import (
-    "context"
-    "database/sql"
-    "errors"
-    "fmt"
-    "time"
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
 
-    "warehouse/models"
+	"warehouse/models"
 )
 
 // PembelianRepo handles purchase transaction persistence.
