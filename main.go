@@ -50,9 +50,13 @@ func main() {
 
         // Transaksi Pembelian
         api.Post("/pembelian", pembelianHandler.CreatePembelianHandler)
+        api.Get("/pembelian", pembelianHandler.GetAll)
+        api.Get("/pembelian/{id}", pembelianHandler.GetByID)
 
         // Transaksi Penjualan
         api.Post("/penjualan", penjualanHandler.CreatePenjualanHandler)
+        api.Get("/penjualan", penjualanHandler.GetAll)
+        api.Get("/penjualan/{id}", penjualanHandler.GetByID)
     })
 
     log.Println("Server listening on :8080")

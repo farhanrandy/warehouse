@@ -9,6 +9,8 @@ import (
 
 	"warehouse/models"
 	"warehouse/repositories"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // PembelianHandler provides HTTP handler for purchase transactions (pembelian).
@@ -58,4 +60,58 @@ func (h *PembelianHandler) CreatePembelianHandler(w http.ResponseWriter, r *http
         return
     }
     writeJSON(w, http.StatusCreated, standardResponse{Success: true, Message: "created", Data: hdr})
+}
+
+// GetAll handles GET /api/pembelian
+// Beginner note: returns list of purchase headers only (no details) for efficiency.
+func (h *PembelianHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+    // set a short timeout for the request context
+    ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+    defer cancel()
+
+    // ask repository for the data
+    list, err := h.Repo.GetAll(ctx)
+    if err != nil {
+        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        return
+    }
+    // respond using the standard envelope
+    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: list})
+}
+
+// pembelianDetailData structures the response explicitly with header and details fields.
+type pembelianDetailData struct {
+    Header  models.BeliHeader   `json:"header"`
+    Details []models.BeliDetail `json:"details"`
+}
+
+// GetByID handles GET /api/pembelian/{id}
+func (h *PembelianHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+    // read id from path and validate
+    idStr := chi.URLParam(r, "id")
+    id, _ := strconv.ParseInt(idStr, 10, 64)
+    if id <= 0 {
+        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "invalid id", Data: nil})
+        return
+    }
+
+    ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+    defer cancel()
+
+    // repository fetches header and details
+    hdr, err := h.Repo.GetByID(ctx, id)
+    if err != nil {
+        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        return
+    }
+    if hdr == nil {
+        writeJSON(w, http.StatusNotFound, standardResponse{Success: false, Message: "not found", Data: nil})
+        return
+    }
+
+    // prepare payload with separated header and details
+    headerOnly := *hdr
+    headerOnly.Details = nil
+    payload := pembelianDetailData{Header: headerOnly, Details: hdr.Details}
+    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: payload})
 }

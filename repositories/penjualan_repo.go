@@ -17,6 +17,55 @@ type PenjualanRepo struct {
 
 func NewPenjualanRepo(db *sql.DB) *PenjualanRepo { return &PenjualanRepo{DB: db} }
 
+// GetAll returns all sales headers ordered by created_at DESC.
+func (r *PenjualanRepo) GetAll(ctx context.Context) ([]models.JualHeader, error) {
+    const q = `SELECT id, no_faktur, customer, total, user_id, status, created_at
+               FROM jual_header
+               ORDER BY created_at DESC`
+    rows, err := r.DB.QueryContext(ctx, q)
+    if err != nil { return nil, fmt.Errorf("query headers: %w", err) }
+    defer rows.Close()
+
+    list := make([]models.JualHeader, 0)
+    for rows.Next() {
+        var h models.JualHeader
+        if err := rows.Scan(&h.ID, &h.NoFaktur, &h.Customer, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
+            return nil, fmt.Errorf("scan header: %w", err)
+        }
+        list = append(list, h)
+    }
+    if err := rows.Err(); err != nil { return nil, fmt.Errorf("rows err: %w", err) }
+    return list, nil
+}
+
+// GetByID returns one sales header and its detail rows.
+func (r *PenjualanRepo) GetByID(ctx context.Context, id int64) (*models.JualHeader, error) {
+    // 1) Header
+    const qHeader = `SELECT id, no_faktur, customer, total, user_id, status, created_at
+                     FROM jual_header WHERE id = $1`
+    var h models.JualHeader
+    if err := r.DB.QueryRowContext(ctx, qHeader, id).Scan(&h.ID, &h.NoFaktur, &h.Customer, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
+        if err == sql.ErrNoRows { return nil, nil }
+        return nil, fmt.Errorf("get header: %w", err)
+    }
+    // 2) Details
+    const qDetail = `SELECT id, jual_header_id, barang_id, qty, harga, subtotal
+                     FROM jual_detail WHERE jual_header_id = $1 ORDER BY id ASC`
+    rows, err := r.DB.QueryContext(ctx, qDetail, id)
+    if err != nil { return nil, fmt.Errorf("query details: %w", err) }
+    defer rows.Close()
+    details := make([]models.JualDetail, 0)
+    for rows.Next() {
+        var d models.JualDetail
+        if err := rows.Scan(&d.ID, &d.JualHeaderID, &d.BarangID, &d.Qty, &d.Harga, &d.Subtotal); err != nil {
+            return nil, fmt.Errorf("scan detail: %w", err)
+        }
+        details = append(details, d)
+    }
+    if err := rows.Err(); err != nil { return nil, fmt.Errorf("rows err: %w", err) }
+    h.Details = details
+    return &h, nil
+}
 // CreatePenjualanTx performs a sales (penjualan) transaction atomically.
 // Steps (ALL inside a single DB transaction):
 //  1. Validate each barang exists.
