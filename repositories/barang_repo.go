@@ -1,10 +1,10 @@
 package repositories
 
 import (
-    "context"
-    "database/sql"
+	"context"
+	"database/sql"
 
-    "warehouse/models"
+	"warehouse/models"
 )
 
 // BarangRepo is a simple repository for the master_barang table.
