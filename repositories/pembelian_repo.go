@@ -17,6 +17,73 @@ type PembelianRepo struct {
 
 func NewPembelianRepo(db *sql.DB) *PembelianRepo { return &PembelianRepo{DB: db} }
 
+// GetAll returns all purchase headers ordered by created_at DESC.
+// Beginner note: We only read from beli_header here (no JOIN to details) to keep it fast and simple.
+func (r *PembelianRepo) GetAll(ctx context.Context) ([]models.BeliHeader, error) {
+    // Simple SELECT to get header list
+    const q = `SELECT id, no_faktur, supplier, total, user_id, status, created_at
+               FROM beli_header
+               ORDER BY created_at DESC`
+
+    rows, err := r.DB.QueryContext(ctx, q)
+    if err != nil {
+        return nil, fmt.Errorf("query headers: %w", err)
+    }
+    defer rows.Close()
+
+    list := make([]models.BeliHeader, 0)
+    for rows.Next() {
+        var h models.BeliHeader
+        if err := rows.Scan(&h.ID, &h.NoFaktur, &h.Supplier, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
+            return nil, fmt.Errorf("scan header: %w", err)
+        }
+        list = append(list, h)
+    }
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("rows err: %w", err)
+    }
+    return list, nil
+}
+
+// GetByID returns one purchase header and its detail rows.
+// Beginner note: We fetch header first, then fetch all related details with a separate query.
+func (r *PembelianRepo) GetByID(ctx context.Context, id int64) (*models.BeliHeader, error) {
+    // 1) Fetch header
+    const qHeader = `SELECT id, no_faktur, supplier, total, user_id, status, created_at
+                     FROM beli_header WHERE id = $1`
+    var h models.BeliHeader
+    if err := r.DB.QueryRowContext(ctx, qHeader, id).Scan(&h.ID, &h.NoFaktur, &h.Supplier, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
+        if err == sql.ErrNoRows {
+            // Not found -> return nil without error
+            return nil, nil
+        }
+        return nil, fmt.Errorf("get header: %w", err)
+    }
+
+    // 2) Fetch details for this header
+    const qDetail = `SELECT id, beli_header_id, barang_id, qty, harga, subtotal
+                     FROM beli_detail WHERE beli_header_id = $1 ORDER BY id ASC`
+    rows, err := r.DB.QueryContext(ctx, qDetail, id)
+    if err != nil {
+        return nil, fmt.Errorf("query details: %w", err)
+    }
+    defer rows.Close()
+
+    details := make([]models.BeliDetail, 0)
+    for rows.Next() {
+        var d models.BeliDetail
+        if err := rows.Scan(&d.ID, &d.BeliHeaderID, &d.BarangID, &d.Qty, &d.Harga, &d.Subtotal); err != nil {
+            return nil, fmt.Errorf("scan detail: %w", err)
+        }
+        details = append(details, d)
+    }
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("rows err: %w", err)
+    }
+    h.Details = details
+    return &h, nil
+}
+
 // CreatePembelianTx performs a purchase (pembelian) transaction atomically.
 // Steps (ALL inside a single DB transaction):
 //  1. Validate each barang exists.
