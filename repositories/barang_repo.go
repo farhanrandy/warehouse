@@ -1,10 +1,10 @@
 package repositories
 
 import (
-	"context"
-	"database/sql"
+    "context"
+    "database/sql"
 
-	"warehouse/models"
+    "warehouse/models"
 )
 
 // BarangRepo is a simple repository for the master_barang table.
@@ -16,32 +16,75 @@ type BarangRepo struct {
 // NewBarangRepo creates a new repository instance.
 func NewBarangRepo(db *sql.DB) *BarangRepo { return &BarangRepo{DB: db} }
 
-// GetAll returns all barang rows.
-// Note: for real apps you will usually add pagination; here we keep it simple.
-func (r *BarangRepo) GetAll(ctx context.Context) ([]models.Barang, error) {
-    const q = `
-        SELECT id, kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual
-        FROM master_barang
-        ORDER BY id DESC`
+// GetAll returns a paginated list of barang with optional search.
+// Beginner-friendly notes:
+// - When search is provided, we filter with ILIKE on nama_barang OR kode_barang.
+// - We run a COUNT(*) query to get total rows (for pagination meta), then a SELECT with LIMIT/OFFSET.
+// - LIMIT is how many rows to return, OFFSET skips (page-1)*limit rows.
+func (r *BarangRepo) GetAll(ctx context.Context, search string, page, limit int) ([]models.Barang, int, error) {
+    // Calculate OFFSET from page and limit (ensure non-negative)
+    if page < 1 { page = 1 }
+    if limit < 1 { limit = 10 }
+    offset := (page - 1) * limit
 
-    rows, err := r.DB.QueryContext(ctx, q)
-    if err != nil { return nil, err }
+    var (
+        countQ string
+        listQ  string
+        rows   *sql.Rows
+        err    error
+        total  int
+    )
+
+    if search != "" {
+        // Use ILIKE for case-insensitive search in PostgreSQL.
+        // COUNT query to know total rows that match the filter.
+        countQ = `SELECT COUNT(*) FROM master_barang
+                  WHERE nama_barang ILIKE $1 OR kode_barang ILIKE $1`
+        // SELECT page of rows with the same filter and ordering.
+        listQ = `SELECT id, kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual
+                 FROM master_barang
+                 WHERE nama_barang ILIKE $1 OR kode_barang ILIKE $1
+                 ORDER BY id DESC
+                 LIMIT $2 OFFSET $3`
+
+        // Build search pattern for ILIKE, e.g. %term%
+        pattern := "%" + search + "%"
+
+        // Run COUNT(*) first
+        if err = r.DB.QueryRowContext(ctx, countQ, pattern).Scan(&total); err != nil {
+            return nil, 0, err
+        }
+        // Run paginated SELECT
+        rows, err = r.DB.QueryContext(ctx, listQ, pattern, limit, offset)
+        if err != nil { return nil, 0, err }
+    } else {
+        // No search filter: simpler queries, different parameter positions.
+        countQ = `SELECT COUNT(*) FROM master_barang`
+        listQ = `SELECT id, kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual
+                 FROM master_barang
+                 ORDER BY id DESC
+                 LIMIT $1 OFFSET $2`
+
+        if err = r.DB.QueryRowContext(ctx, countQ).Scan(&total); err != nil {
+            return nil, 0, err
+        }
+        rows, err = r.DB.QueryContext(ctx, listQ, limit, offset)
+        if err != nil { return nil, 0, err }
+    }
     defer rows.Close()
 
-    items := []models.Barang{}
+    items := make([]models.Barang, 0)
     for rows.Next() {
-        var (
-            b  models.Barang
-            ds sql.NullString
-        )
+        var b models.Barang
+        var ds sql.NullString
         if err := rows.Scan(&b.ID, &b.KodeBarang, &b.NamaBarang, &ds, &b.Satuan, &b.HargaBeli, &b.HargaJual); err != nil {
-            return nil, err
+            return nil, 0, err
         }
         if ds.Valid { v := ds.String; b.Deskripsi = &v }
         items = append(items, b)
     }
-    if err := rows.Err(); err != nil { return nil, err }
-    return items, nil
+    if err := rows.Err(); err != nil { return nil, 0, err }
+    return items, total, nil
 }
 
 // GetByID returns a single barang by its id.
