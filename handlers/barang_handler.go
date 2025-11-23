@@ -19,6 +19,7 @@ type standardResponse struct {
     Success bool        `json:"success"`
     Message string      `json:"message"`
     Data    interface{} `json:"data"`
+    Meta    interface{} `json:"meta,omitempty"`
 }
 
 // BarangHandler provides HTTP handlers for master_barang.
@@ -32,15 +33,35 @@ func NewBarangHandler(repo *repositories.BarangRepo) *BarangHandler {
 
 // GET /api/barang
 func (h *BarangHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+    // Beginner-friendly: parse query params with defaults
+    q := r.URL.Query()
+    search := q.Get("search")             // optional search keyword
+    page, _ := strconv.Atoi(q.Get("page")) // default to 1 if missing/invalid
+    limit, _ := strconv.Atoi(q.Get("limit")) // default to 10 if missing/invalid
+    if page <= 0 { page = 1 }
+    if limit <= 0 { limit = 10 }
+
+    // Create a short-lived context for the DB call
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
 
-    items, err := h.Repo.GetAll(ctx)
+    // Call the repository to get data and total rows for pagination
+    items, total, err := h.Repo.GetAll(ctx, search, page, limit)
     if err != nil {
         writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
         return
     }
-    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: items})
+
+    // Compose meta information for pagination
+    type meta struct {
+        Page  int `json:"page"`
+        Limit int `json:"limit"`
+        Total int `json:"total"`
+    }
+    m := meta{Page: page, Limit: limit, Total: total}
+
+    // Return standard response: data + meta side-by-side
+    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: items, Meta: m})
 }
 
 // GET /api/barang/{id}
