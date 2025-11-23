@@ -1,15 +1,16 @@
 package handlers
 
 import (
-    "context"
-    "encoding/json"
-    "net/http"
-    "strconv"
-    "time"
+	"context"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"time"
 
-    "warehouse/models"
-    "warehouse/repositories"
-    "github.com/go-chi/chi/v5"
+	"warehouse/models"
+	"warehouse/repositories"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // PenjualanHandler provides HTTP handler for sales transactions (penjualan).
