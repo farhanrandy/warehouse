@@ -1,10 +1,10 @@
 package repositories
 
 import (
-    "context"
-    "database/sql"
-    "fmt"
-    "warehouse/models"
+	"context"
+	"database/sql"
+	"fmt"
+	"warehouse/models"
 )
 
 type UserRepo struct { DB *sql.DB }

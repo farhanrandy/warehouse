@@ -8,7 +8,7 @@ import (
 
 	"warehouse/config"
 	"warehouse/handlers"
-    wm "warehouse/middleware"
+	wm "warehouse/middleware"
 	"warehouse/repositories"
 )
 

@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
-    "strings"
 
+	"warehouse/apperr"
 	"warehouse/models"
-    "warehouse/apperr"
 )
 
 type PembelianRepo struct {

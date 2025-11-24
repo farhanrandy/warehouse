@@ -1,17 +1,17 @@
 package handlers
 
 import (
-    "context"
-    "database/sql"
-    "encoding/json"
-    "net/http"
-    "strconv"
-    "time"
+	"context"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"time"
 
-    "warehouse/models"
-    "warehouse/repositories"
+	"warehouse/models"
+	"warehouse/repositories"
 
-    "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 )
 
 // BarangHandler provides HTTP handlers for master_barang.

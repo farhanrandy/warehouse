@@ -1,15 +1,15 @@
 package handlers
 
 import (
-    "context"
-    "encoding/json"
-    "net/http"
-    "time"
+	"context"
+	"encoding/json"
+	"net/http"
+	"time"
 
-    "github.com/golang-jwt/jwt/v5"
-    "golang.org/x/crypto/bcrypt"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 
-    "warehouse/repositories"
+	"warehouse/repositories"
 )
 
 type AuthHandler struct {

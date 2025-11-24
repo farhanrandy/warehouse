@@ -1,13 +1,13 @@
 package handlers
 
 import (
-    "encoding/json"
-    "errors"
-    "net/http"
+	"encoding/json"
+	"errors"
+	"net/http"
 
-    "database/sql"
+	"database/sql"
 
-    "warehouse/apperr"
+	"warehouse/apperr"
 )
 
 type Meta struct {

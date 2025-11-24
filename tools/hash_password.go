@@ -1,10 +1,11 @@
 package main
 
 import (
-    "fmt"
-    "log"
-    "os"
-    "golang.org/x/crypto/bcrypt"
+	"fmt"
+	"log"
+	"os"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // go run tools/hash_password.go <plain_password>

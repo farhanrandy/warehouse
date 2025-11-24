@@ -1,12 +1,12 @@
 package middleware
 
 import (
-    "context"
-    "net/http"
-    "strings"
-    "time"
+	"context"
+	"net/http"
+	"strings"
+	"time"
 
-    "github.com/golang-jwt/jwt/v5"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var jwtSecret = []byte("super-secret-key")

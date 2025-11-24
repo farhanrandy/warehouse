@@ -1,11 +1,11 @@
 package handlers
 
 import (
-    "context"
-    "net/http"
-    "time"
+	"context"
+	"net/http"
+	"time"
 
-    "warehouse/repositories"
+	"warehouse/repositories"
 )
 
 type LaporanHandler struct {
