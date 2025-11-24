@@ -69,9 +69,7 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refresh_token\": \"{{REFRESH_TOKEN}}\"\n}"
@@ -92,7 +90,9 @@
           "name": "List Barang",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/barang",
               "host": ["{{baseUrl}}"],
@@ -104,7 +104,9 @@
           "name": "List Barang (Pagination + Search)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/barang?page=1&limit=5&search=kaos",
               "host": ["{{baseUrl}}"],
@@ -121,7 +123,9 @@
           "name": "Get Barang by ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/barang/1",
               "host": ["{{baseUrl}}"],
@@ -171,7 +175,9 @@
           "name": "Delete Barang",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/barang/1",
               "host": ["{{baseUrl}}"],
@@ -188,7 +194,9 @@
           "name": "Get All Stok",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/stok",
               "host": ["{{baseUrl}}"],
@@ -200,7 +208,9 @@
           "name": "Get Stok by Barang",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/stok/1",
               "host": ["{{baseUrl}}"],
@@ -212,7 +222,9 @@
           "name": "Get History Stok (Pagination)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/history-stok?page=1&limit=10",
               "host": ["{{baseUrl}}"],
@@ -228,7 +240,9 @@
           "name": "Get History by Barang (Pagination)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/history-stok/1?page=1&limit=10",
               "host": ["{{baseUrl}}"],
@@ -268,7 +282,9 @@
           "name": "Get All Pembelian (Paged + Filter)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/pembelian?page=1&limit=10&from=2025-01-01&to=2025-01-31",
               "host": ["{{baseUrl}}"],
@@ -286,7 +302,9 @@
           "name": "Get Detail Pembelian",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/pembelian/1",
               "host": ["{{baseUrl}}"],
@@ -317,7 +335,9 @@
           "name": "Get All Penjualan (Paged + Filter)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/penjualan?page=1&limit=10&from=2025-01-01&to=2025-01-31",
               "host": ["{{baseUrl}}"],
@@ -335,7 +355,9 @@
           "name": "Get Detail Penjualan",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/penjualan/1",
               "host": ["{{baseUrl}}"],
@@ -352,7 +374,9 @@
           "name": "Laporan Stok",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/laporan/stok",
               "host": ["{{baseUrl}}"],
@@ -364,7 +388,9 @@
           "name": "Laporan Penjualan (Date Range)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/laporan/penjualan?from=2025-01-01&to=2025-01-31",
               "host": ["{{baseUrl}}"],
@@ -380,7 +406,9 @@
           "name": "Laporan Pembelian (Date Range)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/laporan/pembelian?from=2025-01-01&to=2025-01-31",
               "host": ["{{baseUrl}}"],
