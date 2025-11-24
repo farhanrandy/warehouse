@@ -14,6 +14,7 @@ type JualHeader struct {
     Status    string       `json:"status" db:"status"`
     CreatedAt time.Time    `json:"created_at" db:"created_at"`
     Details   []JualDetail `json:"details,omitempty" db:"-"`
+    UserDetail *User       `json:"user_detail,omitempty" db:"-"`
 }
 
 // JualDetail represents a row in jual_detail (sales line item).
@@ -24,4 +25,5 @@ type JualDetail struct {
     Qty           int64 `json:"qty" db:"qty"`
     Harga         int64 `json:"harga" db:"harga"`
     Subtotal      int64 `json:"subtotal" db:"subtotal"`
+    BarangDetail  *Barang `json:"barang_detail,omitempty" db:"-"`
 }

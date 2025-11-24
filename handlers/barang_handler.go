@@ -33,11 +33,10 @@ func NewBarangHandler(repo *repositories.BarangRepo) *BarangHandler {
 
 // GET /api/barang
 func (h *BarangHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-    // Beginner-friendly: parse query params with defaults
     q := r.URL.Query()
-    search := q.Get("search")             // optional search keyword
-    page, _ := strconv.Atoi(q.Get("page")) // default to 1 if missing/invalid
-    limit, _ := strconv.Atoi(q.Get("limit")) // default to 10 if missing/invalid
+    search := q.Get("search")             
+    page, _ := strconv.Atoi(q.Get("page")) 
+    limit, _ := strconv.Atoi(q.Get("limit")) 
     if page <= 0 { page = 1 }
     if limit <= 0 { limit = 10 }
 
@@ -66,10 +65,10 @@ func (h *BarangHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/barang/{id}
 func (h *BarangHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-    // Read id from chi path params: /api/barang/{id}
+
     idStr := chi.URLParam(r, "id")
     if idStr == "" {
-        // last fallback: accept id from query parameter if not present in path
+    
         idStr = r.URL.Query().Get("id")
     }
     id, _ := strconv.ParseInt(idStr, 10, 64)
@@ -99,7 +98,7 @@ func (h *BarangHandler) Create(w http.ResponseWriter, r *http.Request) {
         writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "invalid json", Data: nil})
         return
     }
-    // Minimal validation for beginners: ensure key fields are present
+
     if b.KodeBarang == "" || b.NamaBarang == "" || b.Satuan == "" {
         writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required", Data: nil})
         return
@@ -108,7 +107,7 @@ func (h *BarangHandler) Create(w http.ResponseWriter, r *http.Request) {
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
     if err := h.Repo.Create(ctx, &b); err != nil {
-        // Translate sql.ErrNoRows and other errors to messages
+  
         if err == sql.ErrNoRows {
             writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "failed to create", Data: nil})
             return
@@ -135,7 +134,7 @@ func (h *BarangHandler) UpdateBarang(w http.ResponseWriter, r *http.Request) {
     }
     // Enforce ID from path to avoid mismatch
     b.ID = id
-    // Basic validation
+
     if b.KodeBarang == "" || b.NamaBarang == "" || b.Satuan == "" {
         writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required", Data: nil})
         return
@@ -151,7 +150,7 @@ func (h *BarangHandler) UpdateBarang(w http.ResponseWriter, r *http.Request) {
         writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
         return
     }
-    // Optionally re-fetch to return latest state
+ 
     updated, err := h.Repo.GetByID(ctx, id)
     if err != nil {
         writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
@@ -186,4 +185,16 @@ func writeJSON(w http.ResponseWriter, status int, payload standardResponse) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(status)
     _ = json.NewEncoder(w).Encode(payload)
+}
+
+// GET /api/barang/stok
+func (h *BarangHandler) GetAllWithStok(w http.ResponseWriter, r *http.Request) {
+    ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+    defer cancel()
+    items, err := h.Repo.GetAllWithStok(ctx)
+    if err != nil {
+        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        return
+    }
+    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: items})
 }

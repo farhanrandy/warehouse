@@ -1,25 +1,17 @@
 package repositories
 
 import (
-	"context"
-	"database/sql"
-	"warehouse/models"
+    "context"
+    "database/sql"
+    "warehouse/models"
 )
 
-// StokRepo provides read operations for stock and history.
 type StokRepo struct {
     DB *sql.DB
 }
 
 func NewStokRepo(db *sql.DB) *StokRepo { return &StokRepo{DB: db} }
 
-// GetStokAkhirAll returns current stock (mstok) joined with master_barang.
-// Example SQL JOIN used:
-// SELECT s.id, s.barang_id, s.stok_akhir,
-//        b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual
-// FROM mstok s
-// JOIN master_barang b ON b.id = s.barang_id
-// ORDER BY b.nama_barang ASC;
 func (r *StokRepo) GetStokAkhirAll(ctx context.Context) ([]models.Mstok, error) {
     const q = `SELECT s.id, s.barang_id, s.stok_akhir,
         b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual
@@ -48,15 +40,6 @@ func (r *StokRepo) GetStokAkhirAll(ctx context.Context) ([]models.Mstok, error) 
     return list, nil
 }
 
-// GetHistoryAll returns all stock movement history joined with barang and user.
-// Example SQL JOIN used:
-// SELECT h.id, h.barang_id, h.user_id, h.jenis_transaksi, h.jumlah, h.stok_sebelum, h.stok_sesudah, h.created_at,
-//        b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual,
-//        u.id, u.username, u.password, u.email, u.full_name, u.role
-// FROM history_stok h
-// JOIN master_barang b ON b.id = h.barang_id
-// JOIN users u ON u.id = h.user_id
-// ORDER BY h.created_at DESC;
 func (r *StokRepo) GetHistoryAll(ctx context.Context) ([]models.HistoryStok, error) {
     const q = `SELECT h.id, h.barang_id, h.user_id, h.jenis_transaksi, h.jumlah, h.stok_sebelum, h.stok_sesudah, h.created_at,
         b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual,
@@ -90,7 +73,6 @@ func (r *StokRepo) GetHistoryAll(ctx context.Context) ([]models.HistoryStok, err
     return list, nil
 }
 
-// GetStokByBarangID returns stock for a single barang_id (joined with master_barang).
 func (r *StokRepo) GetStokByBarangID(ctx context.Context, barangID int64) (*models.Mstok, error) {
     const q = `SELECT s.id, s.barang_id, s.stok_akhir,
         b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual
@@ -111,7 +93,6 @@ func (r *StokRepo) GetStokByBarangID(ctx context.Context, barangID int64) (*mode
     return &m, nil
 }
 
-// GetHistoryByBarangID returns movement history filtered by barang_id.
 func (r *StokRepo) GetHistoryByBarangID(ctx context.Context, barangID int64) ([]models.HistoryStok, error) {
     const q = `SELECT h.id, h.barang_id, h.user_id, h.jenis_transaksi, h.jumlah, h.stok_sebelum, h.stok_sesudah, h.created_at,
         b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual,
