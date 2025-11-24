@@ -23,7 +23,6 @@ func NewPenjualanHandler(repo *repositories.PenjualanRepo) *PenjualanHandler {
 }
 
 // CreatePenjualanHandler handles POST /api/penjualan
-// Body should map to models.JualHeader and include Details slice.
 func (h *PenjualanHandler) CreatePenjualanHandler(w http.ResponseWriter, r *http.Request) {
     var hdr models.JualHeader
     if err := json.NewDecoder(r.Body).Decode(&hdr); err != nil {
@@ -31,7 +30,6 @@ func (h *PenjualanHandler) CreatePenjualanHandler(w http.ResponseWriter, r *http
         return
     }
 
-    // Basic validation
     if hdr.NoFaktur == "" || hdr.Customer == "" || hdr.UserID <= 0 || len(hdr.Details) == 0 {
         writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "no_faktur, customer, user_id, details required", Data: nil})
         return

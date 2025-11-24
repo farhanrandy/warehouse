@@ -14,6 +14,7 @@ type BeliHeader struct {
     Status    string       `json:"status" db:"status"`
     CreatedAt time.Time    `json:"created_at" db:"created_at"`
     Details   []BeliDetail `json:"details,omitempty" db:"-"`
+    UserDetail *User       `json:"user_detail,omitempty" db:"-"`
 }
 
 // BeliDetail represents a row in beli_detail (purchase line item).
@@ -24,4 +25,5 @@ type BeliDetail struct {
     Qty          int64 `json:"qty" db:"qty"`
     Harga        int64 `json:"harga" db:"harga"`
     Subtotal     int64 `json:"subtotal" db:"subtotal"`
+    BarangDetail *Barang `json:"barang_detail,omitempty" db:"-"`
 }

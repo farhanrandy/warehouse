@@ -37,6 +37,7 @@ func main() {
     r.Route("/api", func(api chi.Router) {
         // Master Barang CRUD
         api.Get("/barang", barangHandler.GetAll)
+        api.Get("/barang/stok", barangHandler.GetAllWithStok)
         api.Get("/barang/{id}", barangHandler.GetByID)
         api.Post("/barang", barangHandler.Create)
         api.Put("/barang/{id}", barangHandler.UpdateBarang)

@@ -1,0 +1,225 @@
+{
+  "info": {
+    "name": "Warehouse Inventory API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [{ "key": "baseUrl", "value": "http://localhost:8080" }],
+  "item": [
+    {
+      "name": "Master Data",
+      "item": [
+        {
+          "name": "List Barang",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/barang",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang"]
+            }
+          }
+        },
+        {
+          "name": "List Barang (Pagination + Search)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/barang?page=1&limit=5&search=kaos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" },
+                { "key": "search", "value": "kaos" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Barang by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/barang/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Barang",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih\",\n  \"deskripsi\": \"Kaos cotton combed 30s\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 45000,\n  \"harga_jual\": 65000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/barang",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang"]
+            }
+          }
+        },
+        {
+          "name": "Update Barang",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih - Update\",\n  \"deskripsi\": \"Kaos cotton combed 30s (updated)\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 46000,\n  \"harga_jual\": 70000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/barang/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Barang",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/barang/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stok",
+      "item": [
+        {
+          "name": "Get All Stok",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/stok",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stok"]
+            }
+          }
+        },
+        {
+          "name": "Get Stok by Barang",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/stok/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stok", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get History Stok",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/history-stok",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "history-stok"]
+            }
+          }
+        },
+        {
+          "name": "Get History by Barang",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/history-stok/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "history-stok", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transaksi",
+      "item": [
+        {
+          "name": "Create Pembelian",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"no_faktur\": \"PB-2025-0001\",\n  \"supplier\": \"PT Sumber Makmur\",\n  \"user_id\": 1,\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 10, \"harga\": 40000 },\n    { \"barang_id\": 2, \"qty\": 5, \"harga\": 80000 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pembelian",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pembelian"]
+            }
+          }
+        },
+        {
+          "name": "Get All Pembelian",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pembelian",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pembelian"]
+            }
+          }
+        },
+        {
+          "name": "Get Detail Pembelian",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pembelian/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pembelian", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Penjualan",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"no_faktur\": \"PJ-2025-0001\",\n  \"customer\": \"Budi Santoso\",\n  \"user_id\": 1,\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 3, \"harga\": 65000 },\n    { \"barang_id\": 2, \"qty\": 1, \"harga\": 120000 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/penjualan",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "penjualan"]
+            }
+          }
+        },
+        {
+          "name": "Get All Penjualan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/penjualan",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "penjualan"]
+            }
+          }
+        },
+        {
+          "name": "Get Detail Penjualan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/penjualan/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "penjualan", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

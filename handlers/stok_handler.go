@@ -12,21 +12,18 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// StokHandler provides endpoints for stock and history read operations.
 type StokHandler struct {
     Repo *repositories.StokRepo
 }
 
 func NewStokHandler(repo *repositories.StokRepo) *StokHandler { return &StokHandler{Repo: repo} }
 
-// standardResponse reused (defined in barang_handler.go); duplicate small struct for isolation.
 type stokResponse struct {
     Success bool        `json:"success"`
     Message string      `json:"message"`
     Data    interface{} `json:"data"`
 }
 
-// GET /api/stok
 func (h *StokHandler) GetStokAkhirAll(w http.ResponseWriter, r *http.Request) {
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
@@ -38,7 +35,6 @@ func (h *StokHandler) GetStokAkhirAll(w http.ResponseWriter, r *http.Request) {
     writeStokJSON(w, http.StatusOK, stokResponse{true, "OK", list})
 }
 
-// GET /api/history-stok
 func (h *StokHandler) GetHistoryAll(w http.ResponseWriter, r *http.Request) {
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
@@ -50,7 +46,6 @@ func (h *StokHandler) GetHistoryAll(w http.ResponseWriter, r *http.Request) {
     writeStokJSON(w, http.StatusOK, stokResponse{true, "OK", list})
 }
 
-// GET /api/stok/{barang_id}
 func (h *StokHandler) GetStokByBarangHandler(w http.ResponseWriter, r *http.Request) {
     idStr := chi.URLParam(r, "barang_id")
     barangID, _ := strconv.ParseInt(idStr, 10, 64)
@@ -72,7 +67,6 @@ func (h *StokHandler) GetStokByBarangHandler(w http.ResponseWriter, r *http.Requ
     writeStokJSON(w, http.StatusOK, stokResponse{true, "OK", item})
 }
 
-// GET /api/history-stok/{barang_id}
 func (h *StokHandler) GetHistoryByBarangHandler(w http.ResponseWriter, r *http.Request) {
     idStr := chi.URLParam(r, "barang_id")
     barangID, _ := strconv.ParseInt(idStr, 10, 64)

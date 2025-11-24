@@ -7,22 +7,13 @@ import (
 	"warehouse/models"
 )
 
-// BarangRepo is a simple repository for the master_barang table.
-// It uses the standard library database/sql with the lib/pq driver.
 type BarangRepo struct {
     DB *sql.DB
 }
 
-// NewBarangRepo creates a new repository instance.
 func NewBarangRepo(db *sql.DB) *BarangRepo { return &BarangRepo{DB: db} }
 
-// GetAll returns a paginated list of barang with optional search.
-// Beginner-friendly notes:
-// - When search is provided, we filter with ILIKE on nama_barang OR kode_barang.
-// - We run a COUNT(*) query to get total rows (for pagination meta), then a SELECT with LIMIT/OFFSET.
-// - LIMIT is how many rows to return, OFFSET skips (page-1)*limit rows.
 func (r *BarangRepo) GetAll(ctx context.Context, search string, page, limit int) ([]models.Barang, int, error) {
-    // Calculate OFFSET from page and limit (ensure non-negative)
     if page < 1 { page = 1 }
     if limit < 1 { limit = 10 }
     offset := (page - 1) * limit
@@ -36,29 +27,20 @@ func (r *BarangRepo) GetAll(ctx context.Context, search string, page, limit int)
     )
 
     if search != "" {
-        // Use ILIKE for case-insensitive search in PostgreSQL.
-        // COUNT query to know total rows that match the filter.
         countQ = `SELECT COUNT(*) FROM master_barang
                   WHERE nama_barang ILIKE $1 OR kode_barang ILIKE $1`
-        // SELECT page of rows with the same filter and ordering.
         listQ = `SELECT id, kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual
                  FROM master_barang
                  WHERE nama_barang ILIKE $1 OR kode_barang ILIKE $1
                  ORDER BY id DESC
                  LIMIT $2 OFFSET $3`
-
-        // Build search pattern for ILIKE, e.g. %term%
         pattern := "%" + search + "%"
-
-        // Run COUNT(*) first
         if err = r.DB.QueryRowContext(ctx, countQ, pattern).Scan(&total); err != nil {
             return nil, 0, err
         }
-        // Run paginated SELECT
         rows, err = r.DB.QueryContext(ctx, listQ, pattern, limit, offset)
         if err != nil { return nil, 0, err }
     } else {
-        // No search filter: simpler queries, different parameter positions.
         countQ = `SELECT COUNT(*) FROM master_barang`
         listQ = `SELECT id, kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual
                  FROM master_barang
@@ -87,8 +69,6 @@ func (r *BarangRepo) GetAll(ctx context.Context, search string, page, limit int)
     return items, total, nil
 }
 
-// GetByID returns a single barang by its id.
-// If not found, it returns (nil, nil).
 func (r *BarangRepo) GetByID(ctx context.Context, id int64) (*models.Barang, error) {
     const q = `
         SELECT id, kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual
@@ -108,7 +88,6 @@ func (r *BarangRepo) GetByID(ctx context.Context, id int64) (*models.Barang, err
     return &b, nil
 }
 
-// Create inserts a new barang and sets the generated ID on the struct.
 func (r *BarangRepo) Create(ctx context.Context, b *models.Barang) error {
     const q = `
         INSERT INTO master_barang (kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual)
@@ -128,8 +107,6 @@ func (r *BarangRepo) Create(ctx context.Context, b *models.Barang) error {
     ).Scan(&b.ID)
 }
 
-// Update modifies an existing barang row by its ID.
-// Returns sql.ErrNoRows if the ID does not exist.
 func (r *BarangRepo) Update(ctx context.Context, b *models.Barang) error {
     const q = `
         UPDATE master_barang
@@ -154,8 +131,6 @@ func (r *BarangRepo) Update(ctx context.Context, b *models.Barang) error {
     return nil
 }
 
-// Delete removes a barang row by its ID.
-// Returns sql.ErrNoRows if the ID does not exist.
 func (r *BarangRepo) Delete(ctx context.Context, id int64) error {
     const q = `DELETE FROM master_barang WHERE id=$1`
     res, err := r.DB.ExecContext(ctx, q, id)
@@ -163,4 +138,27 @@ func (r *BarangRepo) Delete(ctx context.Context, id int64) error {
     n, _ := res.RowsAffected()
     if n == 0 { return sql.ErrNoRows }
     return nil
+}
+
+func (r *BarangRepo) GetAllWithStok(ctx context.Context) ([]models.BarangWithStok, error) {
+    const q = `SELECT b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual,
+        COALESCE(s.stok_akhir,0) AS stok_akhir
+        FROM master_barang b
+        LEFT JOIN mstok s ON s.barang_id = b.id
+        ORDER BY b.id DESC`
+    rows, err := r.DB.QueryContext(ctx, q)
+    if err != nil { return nil, err }
+    defer rows.Close()
+    list := make([]models.BarangWithStok, 0)
+    for rows.Next() {
+        var ds sql.NullString
+        var item models.BarangWithStok
+        if err := rows.Scan(&item.ID, &item.KodeBarang, &item.NamaBarang, &ds, &item.Satuan, &item.HargaBeli, &item.HargaJual, &item.StokAkhir); err != nil {
+            return nil, err
+        }
+        if ds.Valid { v := ds.String; item.Deskripsi = &v }
+        list = append(list, item)
+    }
+    if err := rows.Err(); err != nil { return nil, err }
+    return list, nil
 }

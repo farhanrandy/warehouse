@@ -23,17 +23,6 @@ func NewPembelianHandler(repo *repositories.PembelianRepo) *PembelianHandler {
 }
 
 // CreatePembelianHandler handles POST /api/pembelian
-// Expected JSON body maps to models.BeliHeader including an array of Details.
-// Example:
-// {
-//   "no_faktur": "F-001",
-//   "supplier": "PT Supplier",
-//   "user_id": 1,
-//   "details": [
-//     {"barang_id": 10, "qty": 5, "harga": 12000},
-//     {"barang_id": 12, "qty": 3, "harga": 15000}
-//   ]
-// }
 func (h *PembelianHandler) CreatePembelianHandler(w http.ResponseWriter, r *http.Request) {
     var hdr models.BeliHeader
     if err := json.NewDecoder(r.Body).Decode(&hdr); err != nil {
@@ -63,23 +52,19 @@ func (h *PembelianHandler) CreatePembelianHandler(w http.ResponseWriter, r *http
 }
 
 // GetAll handles GET /api/pembelian
-// Beginner note: returns list of purchase headers only (no details) for efficiency.
 func (h *PembelianHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-    // set a short timeout for the request context
+  
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
 
-    // ask repository for the data
     list, err := h.Repo.GetAll(ctx)
     if err != nil {
         writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
         return
     }
-    // respond using the standard envelope
     writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: list})
 }
 
-// pembelianDetailData structures the response explicitly with header and details fields.
 type pembelianDetailData struct {
     Header  models.BeliHeader   `json:"header"`
     Details []models.BeliDetail `json:"details"`
@@ -87,7 +72,6 @@ type pembelianDetailData struct {
 
 // GetByID handles GET /api/pembelian/{id}
 func (h *PembelianHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-    // read id from path and validate
     idStr := chi.URLParam(r, "id")
     id, _ := strconv.ParseInt(idStr, 10, 64)
     if id <= 0 {
