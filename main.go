@@ -8,6 +8,7 @@ import (
 
 	"warehouse/config"
 	"warehouse/handlers"
+    wm "warehouse/middleware"
 	"warehouse/repositories"
 )
 
@@ -28,6 +29,9 @@ func main() {
     pembelianHandler := handlers.NewPembelianHandler(pembelianRepo)
     penjualanRepo := repositories.NewPenjualanRepo(db)
     penjualanHandler := handlers.NewPenjualanHandler(penjualanRepo)
+    userRepo := repositories.NewUserRepo(db)
+    authHandler := handlers.NewAuthHandler(userRepo)
+    laporanHandler := handlers.NewLaporanHandler(stokRepo, penjualanRepo, pembelianRepo)
 
     // Router setup
     r := chi.NewRouter()
@@ -35,29 +39,43 @@ func main() {
 
     // API routes
     r.Route("/api", func(api chi.Router) {
-        // Master Barang CRUD
-        api.Get("/barang", barangHandler.GetAll)
-        api.Get("/barang/stok", barangHandler.GetAllWithStok)
-        api.Get("/barang/{id}", barangHandler.GetByID)
-        api.Post("/barang", barangHandler.Create)
-        api.Put("/barang/{id}", barangHandler.UpdateBarang)
-        api.Delete("/barang/{id}", barangHandler.DeleteBarang)
+        // Public
+        api.Post("/login", authHandler.Login)
 
-        // Stok Management (read-only for now)
-        api.Get("/stok", stokHandler.GetStokAkhirAll)
-        api.Get("/history-stok", stokHandler.GetHistoryAll)
-        api.Get("/stok/{barang_id}", stokHandler.GetStokByBarangHandler)
-        api.Get("/history-stok/{barang_id}", stokHandler.GetHistoryByBarangHandler)
+        // Protected group
+        api.Group(func(priv chi.Router) {
+            priv.Use(wm.AuthMiddleware)
 
-        // Transaksi Pembelian
-        api.Post("/pembelian", pembelianHandler.CreatePembelianHandler)
-        api.Get("/pembelian", pembelianHandler.GetAll)
-        api.Get("/pembelian/{id}", pembelianHandler.GetByID)
+            // Master Barang CRUD
+            priv.Get("/barang", barangHandler.GetAll)
+            priv.Get("/barang/stok", barangHandler.GetAllWithStok)
+            priv.Get("/barang/{id}", barangHandler.GetByID)
+            priv.Post("/barang", barangHandler.Create)
+            priv.Put("/barang/{id}", barangHandler.UpdateBarang)
+            // Only admin can delete
+            priv.With(wm.RequireRoles("admin")).Delete("/barang/{id}", barangHandler.DeleteBarang)
 
-        // Transaksi Penjualan
-        api.Post("/penjualan", penjualanHandler.CreatePenjualanHandler)
-        api.Get("/penjualan", penjualanHandler.GetAll)
-        api.Get("/penjualan/{id}", penjualanHandler.GetByID)
+            // Stok and History
+            priv.Get("/stok", stokHandler.GetStokAkhirAll)
+            priv.Get("/history-stok", stokHandler.GetHistoryAll)
+            priv.Get("/stok/{barang_id}", stokHandler.GetStokByBarangHandler)
+            priv.Get("/history-stok/{barang_id}", stokHandler.GetHistoryByBarangHandler)
+
+            // Transaksi Pembelian
+            priv.Post("/pembelian", pembelianHandler.CreatePembelianHandler)
+            priv.Get("/pembelian", pembelianHandler.GetAll)
+            priv.Get("/pembelian/{id}", pembelianHandler.GetByID)
+
+            // Transaksi Penjualan
+            priv.Post("/penjualan", penjualanHandler.CreatePenjualanHandler)
+            priv.Get("/penjualan", penjualanHandler.GetAll)
+            priv.Get("/penjualan/{id}", penjualanHandler.GetByID)
+
+            // Laporan
+            priv.Get("/laporan/stok", laporanHandler.LaporanStok)
+            priv.Get("/laporan/penjualan", laporanHandler.LaporanPenjualan)
+            priv.Get("/laporan/pembelian", laporanHandler.LaporanPembelian)
+        })
     })
 
     log.Println("Server listening on :8080")

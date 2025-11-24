@@ -9,6 +9,7 @@ Golang-based REST API for a simple Warehouse Inventory system. It includes Maste
 - Router: chi (github.com/go-chi/chi/v5)
 - DB: database/sql + lib/pq
 - Env loader: godotenv
+- Auth: JWT (github.com/golang-jwt/jwt/v5) + bcrypt (golang.org/x/crypto/bcrypt)
 
 ## Prerequisites
 
@@ -66,29 +67,66 @@ Health check:
 curl http://localhost:8080/health
 ```
 
+## Authentication
+
+- Public endpoint: `POST /api/login`
+- All other `/api/*` routes are protected with Bearer JWT.
+
+Login request:
+
+```bash
+curl -X POST http://localhost:8080/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"<your-password>"}'
+```
+
+Successful response:
+
+```json
+{
+  "success": true,
+  "message": "Login success",
+  "data": { "token": "<jwt>" }
+}
+```
+
+Use the token:
+
+```bash
+curl http://localhost:8080/api/barang \
+  -H "Authorization: Bearer <jwt>"
+```
+
 ## API Endpoints
 
 Base URL: `http://localhost:8080`
 
+### Auth (Public)
+
+- POST `/api/login` — Get JWT token
+
 ### Master Barang
 
+- All routes below require `Authorization: Bearer <jwt>` header
 - GET `/api/barang?search=&page=&limit=` — List with search + pagination
 - GET `/api/barang/{id}` — Detail by ID
 - POST `/api/barang` — Create
 - PUT `/api/barang/{id}` — Update
-- DELETE `/api/barang/{id}` — Delete
+- DELETE `/api/barang/{id}` — Delete (admin only)
 
 ### Stok Management
 
+- Requires Bearer token
 - GET `/api/stok` — List all current stock
 - GET `/api/stok/{barang_id}` — Stock for a specific barang
-- GET `/api/history-stok` — List movement history
-- GET `/api/history-stok/{barang_id}` — Movement history by barang
+- GET `/api/history-stok?page=&limit=` — List movement history (pagination supported; returns meta)
+- GET `/api/history-stok/{barang_id}?page=&limit=` — Movement history by barang (pagination supported; returns meta)
 
 ### Transaksi Pembelian
 
+- Requires Bearer token
 - POST `/api/pembelian` — Create pembelian (transactional)
-- GET `/api/pembelian` — List headers
+- GET `/api/pembelian?page=&limit=&from=&to=` — List headers (pagination + optional date range)
 - GET `/api/pembelian/{id}` — Detail (header + details)
 
 Contoh body pembelian:
@@ -97,7 +135,6 @@ Contoh body pembelian:
 {
   "no_faktur": "PB-001",
   "supplier": "PT ABC",
-  "user_id": 1,
   "details": [
     { "barang_id": 1, "qty": 5, "harga": 12000 },
     { "barang_id": 2, "qty": 3, "harga": 15000 }
@@ -107,8 +144,9 @@ Contoh body pembelian:
 
 ### Transaksi Penjualan
 
+- Requires Bearer token
 - POST `/api/penjualan` — Create penjualan (transactional, with stock validation)
-- GET `/api/penjualan` — List headers
+- GET `/api/penjualan?page=&limit=&from=&to=` — List headers (pagination + optional date range)
 - GET `/api/penjualan/{id}` — Detail (header + details)
 
 Contoh body penjualan:
@@ -117,10 +155,16 @@ Contoh body penjualan:
 {
   "no_faktur": "SJ-001",
   "customer": "PT XYZ",
-  "user_id": 1,
   "details": [{ "barang_id": 1, "qty": 2, "harga": 15000 }]
 }
 ```
+
+### Laporan
+
+- Requires Bearer token
+- GET `/api/laporan/stok` — Stock report (barang + stok_akhir)
+- GET `/api/laporan/penjualan?from=&to=` — Sales report (headers; optional date range)
+- GET `/api/laporan/pembelian?from=&to=` — Purchase report (headers; optional date range)
 
 ## Transactions & Stock Validation
 
@@ -146,3 +190,10 @@ Contoh body penjualan:
 - Search uses PostgreSQL `ILIKE` on `nama_barang` and `kode_barang`.
 - Pagination uses `LIMIT` and `OFFSET` with meta `{ page, limit, total }` in responses.
 - Check `schema.sql` for full table definitions and constraints.
+- JWT secret is a simple constant in code for demo purposes.
+- Seed users use bcrypt-hashed passwords. To generate your own hash:
+
+```bash
+cd warehouse
+go run tools/hash_password.go your-plain-password
+```

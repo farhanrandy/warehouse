@@ -1,26 +1,18 @@
 package handlers
 
 import (
-	"context"
-	"database/sql"
-	"encoding/json"
-	"net/http"
-	"strconv"
-	"time"
+    "context"
+    "database/sql"
+    "encoding/json"
+    "net/http"
+    "strconv"
+    "time"
 
-	"warehouse/models"
-	"warehouse/repositories"
+    "warehouse/models"
+    "warehouse/repositories"
 
-	"github.com/go-chi/chi/v5"
+    "github.com/go-chi/chi/v5"
 )
-
-// standardResponse is the uniform JSON envelope for all responses.
-type standardResponse struct {
-    Success bool        `json:"success"`
-    Message string      `json:"message"`
-    Data    interface{} `json:"data"`
-    Meta    interface{} `json:"meta,omitempty"`
-}
 
 // BarangHandler provides HTTP handlers for master_barang.
 type BarangHandler struct {
@@ -47,7 +39,7 @@ func (h *BarangHandler) GetAll(w http.ResponseWriter, r *http.Request) {
     // Call the repository to get data and total rows for pagination
     items, total, err := h.Repo.GetAll(ctx, search, page, limit)
     if err != nil {
-        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
     }
 
@@ -60,7 +52,7 @@ func (h *BarangHandler) GetAll(w http.ResponseWriter, r *http.Request) {
     m := meta{Page: page, Limit: limit, Total: total}
 
     // Return standard response: data + meta side-by-side
-    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: items, Meta: m})
+    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "OK", Data: items, Meta: &Meta{Page: m.Page, Limit: m.Limit, Total: m.Total}})
 }
 
 // GET /api/barang/{id}
@@ -73,49 +65,44 @@ func (h *BarangHandler) GetByID(w http.ResponseWriter, r *http.Request) {
     }
     id, _ := strconv.ParseInt(idStr, 10, 64)
     if id <= 0 {
-        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "invalid id", Data: nil})
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "invalid id"})
         return
     }
 
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
-    item, err := h.Repo.GetByID(ctx, id)
+    item, err := h.Repo.GetWithStokByID(ctx, id)
     if err != nil {
-        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
     }
     if item == nil {
-        writeJSON(w, http.StatusNotFound, standardResponse{Success: false, Message: "not found", Data: nil})
+        WriteJSON(w, http.StatusNotFound, APIResponse{Success: false, Message: "not found"})
         return
     }
-    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: item})
+    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "OK", Data: item})
 }
 
 // POST /api/barang
 func (h *BarangHandler) Create(w http.ResponseWriter, r *http.Request) {
     var b models.Barang
     if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
-        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "invalid json", Data: nil})
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "invalid json"})
         return
     }
 
     if b.KodeBarang == "" || b.NamaBarang == "" || b.Satuan == "" {
-        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required", Data: nil})
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required"})
         return
     }
 
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
     if err := h.Repo.Create(ctx, &b); err != nil {
-  
-        if err == sql.ErrNoRows {
-            writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "failed to create", Data: nil})
-            return
-        }
-        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
     }
-    writeJSON(w, http.StatusCreated, standardResponse{Success: true, Message: "created", Data: b})
+    WriteJSON(w, http.StatusCreated, APIResponse{Success: true, Message: "created", Data: b})
 }
 
 // PUT /api/barang/{id}
@@ -123,20 +110,20 @@ func (h *BarangHandler) UpdateBarang(w http.ResponseWriter, r *http.Request) {
     idStr := chi.URLParam(r, "id")
     id, _ := strconv.ParseInt(idStr, 10, 64)
     if id <= 0 {
-        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "invalid id", Data: nil})
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "invalid id"})
         return
     }
 
     var b models.Barang
     if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
-        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "invalid json", Data: nil})
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "invalid json"})
         return
     }
     // Enforce ID from path to avoid mismatch
     b.ID = id
 
     if b.KodeBarang == "" || b.NamaBarang == "" || b.Satuan == "" {
-        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required", Data: nil})
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required"})
         return
     }
 
@@ -144,19 +131,19 @@ func (h *BarangHandler) UpdateBarang(w http.ResponseWriter, r *http.Request) {
     defer cancel()
     if err := h.Repo.Update(ctx, &b); err != nil {
         if err == sql.ErrNoRows {
-            writeJSON(w, http.StatusNotFound, standardResponse{Success: false, Message: "not found", Data: nil})
+            WriteJSON(w, http.StatusNotFound, APIResponse{Success: false, Message: "not found"})
             return
         }
-        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
     }
  
     updated, err := h.Repo.GetByID(ctx, id)
     if err != nil {
-        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
     }
-    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "updated", Data: updated})
+    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "updated", Data: updated})
 }
 
 // DELETE /api/barang/{id}
@@ -164,7 +151,7 @@ func (h *BarangHandler) DeleteBarang(w http.ResponseWriter, r *http.Request) {
     idStr := chi.URLParam(r, "id")
     id, _ := strconv.ParseInt(idStr, 10, 64)
     if id <= 0 {
-        writeJSON(w, http.StatusBadRequest, standardResponse{Success: false, Message: "invalid id", Data: nil})
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "invalid id"})
         return
     }
 
@@ -172,20 +159,16 @@ func (h *BarangHandler) DeleteBarang(w http.ResponseWriter, r *http.Request) {
     defer cancel()
     if err := h.Repo.Delete(ctx, id); err != nil {
         if err == sql.ErrNoRows {
-            writeJSON(w, http.StatusNotFound, standardResponse{Success: false, Message: "not found", Data: nil})
+            WriteJSON(w, http.StatusNotFound, APIResponse{Success: false, Message: "not found"})
             return
         }
-        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
     }
-    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "deleted", Data: map[string]int64{"id": id}})
+    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "deleted", Data: map[string]int64{"id": id}})
 }
 
-func writeJSON(w http.ResponseWriter, status int, payload standardResponse) {
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(status)
-    _ = json.NewEncoder(w).Encode(payload)
-}
+// uses WriteJSON from response.go
 
 // GET /api/barang/stok
 func (h *BarangHandler) GetAllWithStok(w http.ResponseWriter, r *http.Request) {
@@ -193,8 +176,8 @@ func (h *BarangHandler) GetAllWithStok(w http.ResponseWriter, r *http.Request) {
     defer cancel()
     items, err := h.Repo.GetAllWithStok(ctx)
     if err != nil {
-        writeJSON(w, http.StatusInternalServerError, standardResponse{Success: false, Message: err.Error(), Data: nil})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
     }
-    writeJSON(w, http.StatusOK, standardResponse{Success: true, Message: "OK", Data: items})
+    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "OK", Data: items})
 }
