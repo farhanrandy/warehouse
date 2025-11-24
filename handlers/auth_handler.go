@@ -1,14 +1,14 @@
 package handlers
 
 import (
-    "context"
-    "encoding/json"
-    "net/http"
-    "time"
+	"context"
+	"encoding/json"
+	"net/http"
+	"time"
 
-    "golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/bcrypt"
 
-    "warehouse/repositories"
+	"warehouse/repositories"
 )
 
 type AuthHandler struct {

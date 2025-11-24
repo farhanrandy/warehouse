@@ -4,8 +4,9 @@ package handlers
 // Keep code minimal and beginner friendly.
 
 import (
-    "time"
-    "github.com/golang-jwt/jwt/v5"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Reuse existing secret defined also in auth_handler.go and middleware.
