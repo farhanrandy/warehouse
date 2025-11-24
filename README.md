@@ -1,25 +1,25 @@
 # Warehouse Inventory Management System API
 
-Golang-based REST API for a simple Warehouse Inventory system. It includes Master Barang management, Stok monitoring, and transactional Pembelian/Penjualan with proper database transactions and stock validations.
+Simple Golang + PostgreSQL REST API for managing warehouse master data (barang), stock, and transactions (pembelian / penjualan) with proper transactional updates and history logging.
 
 ## Tech Stack
 
 - Golang
 - PostgreSQL
-- Router: chi (github.com/go-chi/chi/v5)
+- Router: chi
 - DB: database/sql + lib/pq
 - Env loader: godotenv
-- Auth: JWT (github.com/golang-jwt/jwt/v5) + bcrypt (golang.org/x/crypto/bcrypt)
+- Auth: JWT (golang-jwt) + bcrypt
 
 ## Prerequisites
 
-- Go (1.20+ recommended)
-- PostgreSQL (13+ recommended)
+- Go 1.20+
+- PostgreSQL 13+
 - Git
 
-## Getting Started
+## Quick Start
 
-1. Clone repo and install dependencies
+1. Clone & install deps:
 
 ```bash
 git clone <your-repo-url>
@@ -27,13 +27,7 @@ cd warehouse
 go mod tidy
 ```
 
-2. Create `.env`
-
-```bash
-cp .env.example .env  # if available, else create new file
-```
-
-Minimal `.env` example:
+2. Create `.env` (adjust values):
 
 ```
 DB_HOST=localhost
@@ -44,35 +38,49 @@ DB_NAME=warehouse_db
 DB_SSLMODE=disable
 ```
 
-3. Create database and apply schema
+3. Create DB & apply schema:
 
 ```bash
-# create database (adjust credentials as needed)
 createdb -h localhost -U postgres warehouse_db
-
-# apply schema
 psql -h localhost -U postgres -d warehouse_db -f schema.sql
+psql -h localhost -U postgres -d warehouse_db -f seed.sql   # optional seed
 ```
 
-4. Run the server
+4. Run server:
 
 ```bash
 go run .
 # Server listening on :8080
 ```
 
-Health check:
+5. Health check:
 
 ```bash
 curl http://localhost:8080/health
 ```
 
-## Authentication
+## Authentication & Authorization
 
-- Public endpoint: `POST /api/login`
-- All other `/api/*` routes are protected with Bearer JWT.
+The API uses a pair of JWT tokens:
 
-Login request:
+- Access Token: expires in 15 minutes
+- Refresh Token: expires in 7 days
+
+Public endpoints:
+
+- `POST /api/login`
+- `POST /api/refresh`
+- `GET /health`
+
+Protected endpoints: all other `/api/*` routes require header:
+
+```
+Authorization: Bearer <access_token>
+```
+
+### Login Flow
+
+Request:
 
 ```bash
 curl -X POST http://localhost:8080/api/login \
@@ -80,56 +88,135 @@ curl -X POST http://localhost:8080/api/login \
   -d '{"username":"admin","password":"<your-password>"}'
 ```
 
-Successful response:
+Response:
 
 ```json
 {
   "success": true,
   "message": "Login success",
-  "data": { "token": "<jwt>" }
+  "data": {
+    "access_token": "<access_token>",
+    "refresh_token": "<refresh_token>"
+  }
 }
 ```
 
-Use the token:
+### Refresh Flow
+
+Request:
 
 ```bash
-curl http://localhost:8080/api/barang \
-  -H "Authorization: Bearer <jwt>"
+curl -X POST http://localhost:8080/api/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token>"}'
 ```
 
-## API Endpoints
+Response:
 
-Base URL: `http://localhost:8080`
+```json
+{
+  "success": true,
+  "message": "Token refreshed",
+  "data": {
+    "access_token": "<new_access_token>
+    ", "refresh_token": "<new_refresh_token>"
+  }
+}
+```
 
-### Auth (Public)
+### Postman Usage (Recommended)
 
-- POST `/api/login` — Get JWT token
+Environment variables (example):
+
+```
+BASE_URL = http://localhost:8080
+ACCESS_TOKEN = (set by test script)
+REFRESH_TOKEN = (set by test script)
+```
+
+Login request Test tab script:
+
+```javascript
+if (pm.response.code === 200) {
+  const json = pm.response.json();
+  if (json && json.data) {
+    if (json.data.access_token)
+      pm.environment.set("ACCESS_TOKEN", json.data.access_token);
+    if (json.data.refresh_token)
+      pm.environment.set("REFRESH_TOKEN", json.data.refresh_token);
+  }
+}
+```
+
+Using saved access token in other requests (Headers):
+
+```
+Authorization: Bearer {{ACCESS_TOKEN}}
+```
+
+Refreshing token Test tab script:
+
+```javascript
+if (pm.response.code === 200) {
+  const json = pm.response.json();
+  if (json && json.data) {
+    if (json.data.access_token)
+      pm.environment.set("ACCESS_TOKEN", json.data.access_token);
+    if (json.data.refresh_token)
+      pm.environment.set("REFRESH_TOKEN", json.data.refresh_token);
+  }
+}
+```
+
+### Roles
+
+- Example roles: `admin`, `user` (or `staff`).
+- Only `admin` can delete barang (`DELETE /api/barang/{id}`).
+- Both `admin` and `staff` can create transactions (pembelian / penjualan).
+
+### Seed Credentials
+
+From `seed.sql`:
+
+- Username: `admin` (role: admin)
+- Username: `user1` (role: user)
+  Passwords are stored as bcrypt hashes. If you do not know the plain password, update it:
+
+```bash
+go run tools/hash_password.go new-password
+# Copy hash and UPDATE users SET password='<hash>' WHERE username='admin';
+```
+
+### Important Notes
+
+- `user_id` for transactions is taken from JWT (not from request body).
+- Access tokens are short (15m); always refresh before they expire using `/api/refresh`.
+- Keep refresh tokens secret; they allow minting new access tokens.
+
+## API Endpoints (Summary)
 
 ### Master Barang
 
-- All routes below require `Authorization: Bearer <jwt>` header
-- GET `/api/barang?search=&page=&limit=` — List with search + pagination
-- GET `/api/barang/{id}` — Detail by ID
-- POST `/api/barang` — Create
-- PUT `/api/barang/{id}` — Update
-- DELETE `/api/barang/{id}` — Delete (admin only)
+`GET /api/barang?search=&page=&limit=` – List with search & pagination
+`GET /api/barang/{id}` – Detail (includes stok if implemented)
+`GET /api/barang/stok` – List barang + current stok
+`POST /api/barang` – Create
+`PUT /api/barang/{id}` – Update
+`DELETE /api/barang/{id}` – Delete (admin only)
 
-### Stok Management
+### Stok & History
 
-- Requires Bearer token
-- GET `/api/stok` — List all current stock
-- GET `/api/stok/{barang_id}` — Stock for a specific barang
-- GET `/api/history-stok?page=&limit=` — List movement history (pagination supported; returns meta)
-- GET `/api/history-stok/{barang_id}?page=&limit=` — Movement history by barang (pagination supported; returns meta)
+`GET /api/stok` – All current stock
+`GET /api/stok/{barang_id}` – Stock by barang
+`GET /api/history-stok?page=&limit=` – Paginated stock history
+`GET /api/history-stok/{barang_id}?page=&limit=` – History by barang
 
-### Transaksi Pembelian
+### Pembelian
 
-- Requires Bearer token
-- POST `/api/pembelian` — Create pembelian (transactional)
-- GET `/api/pembelian?page=&limit=&from=&to=` — List headers (pagination + optional date range)
-- GET `/api/pembelian/{id}` — Detail (header + details)
-
-Contoh body pembelian:
+`POST /api/pembelian` – Create (auto update stok + history)
+`GET /api/pembelian?page=&limit=&from=&to=` – Paginated + date filter
+`GET /api/pembelian/{id}` – Header + details
+Body example:
 
 ```json
 {
@@ -142,14 +229,12 @@ Contoh body pembelian:
 }
 ```
 
-### Transaksi Penjualan
+### Penjualan
 
-- Requires Bearer token
-- POST `/api/penjualan` — Create penjualan (transactional, with stock validation)
-- GET `/api/penjualan?page=&limit=&from=&to=` — List headers (pagination + optional date range)
-- GET `/api/penjualan/{id}` — Detail (header + details)
-
-Contoh body penjualan:
+`POST /api/penjualan` – Create (validates stok, auto update + history)
+`GET /api/penjualan?page=&limit=&from=&to=` – Paginated + date filter
+`GET /api/penjualan/{id}` – Header + details
+Body example:
 
 ```json
 {
@@ -161,39 +246,50 @@ Contoh body penjualan:
 
 ### Laporan
 
-- Requires Bearer token
-- GET `/api/laporan/stok` — Stock report (barang + stok_akhir)
-- GET `/api/laporan/penjualan?from=&to=` — Sales report (headers; optional date range)
-- GET `/api/laporan/pembelian?from=&to=` — Purchase report (headers; optional date range)
+`GET /api/laporan/stok`
+`GET /api/laporan/penjualan?from=&to=`
+`GET /api/laporan/pembelian?from=&to=`
 
-## Transactions & Stock Validation
+## Transactions & Stock Logic
 
-- Pembelian (Create):
+Pembelian:
 
-  - Runs inside a single database transaction.
-  - Validates barang exists, computes subtotal/total.
-  - Inserts header and details.
-  - Updates or inserts stock in `mstok` (stok_akhir += qty).
-  - Writes `history_stok` with jenis_transaksi = "pembelian".
-  - Any error triggers ROLLBACK; otherwise COMMIT.
+- Validate barang, compute totals
+- Update/insert `mstok` (add qty)
+- Insert `history_stok` (jenis_transaksi = pembelian)
+- All inside one DB transaction
 
-- Penjualan (Create):
-  - Runs inside a single database transaction with row-level lock on stock.
-  - Validates barang exists and stock availability (stok_akhir >= qty) BEFORE updating.
-  - Inserts header and details.
-  - Updates stock in `mstok` (stok_akhir -= qty).
-  - Writes `history_stok` with jenis_transaksi = "penjualan".
-  - Insufficient stock or any error triggers ROLLBACK; otherwise COMMIT.
+Penjualan:
 
-## Notes
+- Validate barang + stok available
+- Update `mstok` (subtract qty)
+- Insert `history_stok` (jenis_transaksi = penjualan)
+- Rollback on any error
 
-- Search uses PostgreSQL `ILIKE` on `nama_barang` and `kode_barang`.
-- Pagination uses `LIMIT` and `OFFSET` with meta `{ page, limit, total }` in responses.
-- Check `schema.sql` for full table definitions and constraints.
-- JWT secret is a simple constant in code for demo purposes.
-- Seed users use bcrypt-hashed passwords. To generate your own hash:
+## Pagination & Search
+
+Responses can include:
+
+```json
+"meta": { "page": 1, "limit": 10, "total": 42 }
+```
+
+Search uses `ILIKE` on `nama_barang` and `kode_barang`.
+
+## Utilities
+
+Generate bcrypt hash:
 
 ```bash
-cd warehouse
-go run tools/hash_password.go your-plain-password
+go run tools/hash_password.go my-password
 ```
+
+## Development Tips
+
+- Keep access tokens short-lived for security.
+- Refresh token rotation reduces risk of theft.
+- Consider moving JWT secret to `.env` for production.
+
+## License
+
+See `LICENSE` file (if present).

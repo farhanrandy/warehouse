@@ -41,6 +41,7 @@ func main() {
     r.Route("/api", func(api chi.Router) {
         // Public
         api.Post("/login", authHandler.Login)
+        api.Post("/refresh", authHandler.Refresh)
 
         // Protected group
         api.Group(func(priv chi.Router) {
