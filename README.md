@@ -18,7 +18,7 @@ Golang-based REST API for a simple Warehouse Inventory system. It includes Maste
 
 ## Getting Started
 
-1) Clone repo and install dependencies
+1. Clone repo and install dependencies
 
 ```bash
 git clone <your-repo-url>
@@ -26,7 +26,7 @@ cd warehouse
 go mod tidy
 ```
 
-2) Create `.env`
+2. Create `.env`
 
 ```bash
 cp .env.example .env  # if available, else create new file
@@ -43,7 +43,7 @@ DB_NAME=warehouse_db
 DB_SSLMODE=disable
 ```
 
-3) Create database and apply schema
+3. Create database and apply schema
 
 ```bash
 # create database (adjust credentials as needed)
@@ -53,7 +53,7 @@ createdb -h localhost -U postgres warehouse_db
 psql -h localhost -U postgres -d warehouse_db -f schema.sql
 ```
 
-4) Run the server
+4. Run the server
 
 ```bash
 go run .
@@ -95,13 +95,13 @@ Contoh body pembelian:
 
 ```json
 {
-	"no_faktur": "PB-001",
-	"supplier": "PT ABC",
-	"user_id": 1,
-	"details": [
-		{ "barang_id": 1, "qty": 5, "harga": 12000 },
-		{ "barang_id": 2, "qty": 3, "harga": 15000 }
-	]
+  "no_faktur": "PB-001",
+  "supplier": "PT ABC",
+  "user_id": 1,
+  "details": [
+    { "barang_id": 1, "qty": 5, "harga": 12000 },
+    { "barang_id": 2, "qty": 3, "harga": 15000 }
+  ]
 }
 ```
 
@@ -115,32 +115,31 @@ Contoh body penjualan:
 
 ```json
 {
-	"no_faktur": "SJ-001",
-	"customer": "PT XYZ",
-	"user_id": 1,
-	"details": [
-		{ "barang_id": 1, "qty": 2, "harga": 15000 }
-	]
+  "no_faktur": "SJ-001",
+  "customer": "PT XYZ",
+  "user_id": 1,
+  "details": [{ "barang_id": 1, "qty": 2, "harga": 15000 }]
 }
 ```
 
 ## Transactions & Stock Validation
 
 - Pembelian (Create):
-	- Runs inside a single database transaction.
-	- Validates barang exists, computes subtotal/total.
-	- Inserts header and details.
-	- Updates or inserts stock in `mstok` (stok_akhir += qty).
-	- Writes `history_stok` with jenis_transaksi = "pembelian".
-	- Any error triggers ROLLBACK; otherwise COMMIT.
+
+  - Runs inside a single database transaction.
+  - Validates barang exists, computes subtotal/total.
+  - Inserts header and details.
+  - Updates or inserts stock in `mstok` (stok_akhir += qty).
+  - Writes `history_stok` with jenis_transaksi = "pembelian".
+  - Any error triggers ROLLBACK; otherwise COMMIT.
 
 - Penjualan (Create):
-	- Runs inside a single database transaction with row-level lock on stock.
-	- Validates barang exists and stock availability (stok_akhir >= qty) BEFORE updating.
-	- Inserts header and details.
-	- Updates stock in `mstok` (stok_akhir -= qty).
-	- Writes `history_stok` with jenis_transaksi = "penjualan".
-	- Insufficient stock or any error triggers ROLLBACK; otherwise COMMIT.
+  - Runs inside a single database transaction with row-level lock on stock.
+  - Validates barang exists and stock availability (stok_akhir >= qty) BEFORE updating.
+  - Inserts header and details.
+  - Updates stock in `mstok` (stok_akhir -= qty).
+  - Writes `history_stok` with jenis_transaksi = "penjualan".
+  - Insufficient stock or any error triggers ROLLBACK; otherwise COMMIT.
 
 ## Notes
 

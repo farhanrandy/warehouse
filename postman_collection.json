@@ -3,9 +3,7 @@
     "name": "Warehouse Inventory API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" }
-  ],
+  "variable": [{ "key": "baseUrl", "value": "http://localhost:8080" }],
   "item": [
     {
       "name": "Master Data",
@@ -30,9 +28,9 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "barang"],
               "query": [
-                {"key": "page", "value": "1"},
-                {"key": "limit", "value": "5"},
-                {"key": "search", "value": "kaos"}
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" },
+                { "key": "search", "value": "kaos" }
               ]
             }
           }
@@ -52,9 +50,7 @@
           "name": "Create Barang",
           "request": {
             "method": "POST",
-            "header": [
-              {"key": "Content-Type", "value": "application/json"}
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih\",\n  \"deskripsi\": \"Kaos cotton combed 30s\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 45000,\n  \"harga_jual\": 65000\n}"
@@ -70,9 +66,7 @@
           "name": "Update Barang",
           "request": {
             "method": "PUT",
-            "header": [
-              {"key": "Content-Type", "value": "application/json"}
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih - Update\",\n  \"deskripsi\": \"Kaos cotton combed 30s (updated)\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 46000,\n  \"harga_jual\": 70000\n}"
@@ -153,9 +147,7 @@
           "name": "Create Pembelian",
           "request": {
             "method": "POST",
-            "header": [
-              {"key": "Content-Type", "value": "application/json"}
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"no_faktur\": \"PB-2025-0001\",\n  \"supplier\": \"PT Sumber Makmur\",\n  \"user_id\": 1,\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 10, \"harga\": 40000 },\n    { \"barang_id\": 2, \"qty\": 5, \"harga\": 80000 }\n  ]\n}"
@@ -193,9 +185,7 @@
           "name": "Create Penjualan",
           "request": {
             "method": "POST",
-            "header": [
-              {"key": "Content-Type", "value": "application/json"}
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"no_faktur\": \"PJ-2025-0001\",\n  \"customer\": \"Budi Santoso\",\n  \"user_id\": 1,\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 3, \"harga\": 65000 },\n    { \"barang_id\": 2, \"qty\": 1, \"harga\": 120000 }\n  ]\n}"

@@ -1,15 +1,15 @@
 package handlers
 
 import (
-    "context"
-    "encoding/json"
-    "net/http"
-    "strconv"
-    "time"
+	"context"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"time"
 
-    "warehouse/repositories"
+	"warehouse/repositories"
 
-    "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 )
 
 type StokHandler struct {

@@ -1,9 +1,9 @@
 package repositories
 
 import (
-    "context"
-    "database/sql"
-    "warehouse/models"
+	"context"
+	"database/sql"
+	"warehouse/models"
 )
 
 type StokRepo struct {
