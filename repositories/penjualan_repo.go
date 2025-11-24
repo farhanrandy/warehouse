@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"warehouse/apperr"
 	"warehouse/models"
 )
 
@@ -42,8 +44,8 @@ func (r *PenjualanRepo) CreatePenjualanTx(ctx context.Context, hdr *models.JualH
     var total int64
     for i := range hdr.Details {
         d := &hdr.Details[i]
-        if d.Qty <= 0 { return rollback(fmt.Errorf("qty must be > 0 for barang %d", d.BarangID)) }
-        if d.Harga < 0 { return rollback(fmt.Errorf("harga must be >= 0 for barang %d", d.BarangID)) }
+        if d.Qty <= 0 { return rollback(fmt.Errorf("%w: qty must be > 0 for barang %d", apperr.ErrValidation, d.BarangID)) }
+        if d.Harga < 0 { return rollback(fmt.Errorf("%w: harga must be >= 0 for barang %d", apperr.ErrValidation, d.BarangID)) }
         if d.Subtotal == 0 { d.Subtotal = d.Qty * d.Harga }
         total += d.Subtotal
     }
@@ -66,7 +68,7 @@ func (r *PenjualanRepo) CreatePenjualanTx(ctx context.Context, hdr *models.JualH
         var before int64
         if stokBefore.Valid { before = stokBefore.Int64 } else { before = 0 }
         if before < d.Qty {
-            return rollback(fmt.Errorf("insufficient stock for barang %d: have %d, need %d (detail index %d)", d.BarangID, before, d.Qty, i))
+            return rollback(fmt.Errorf("%w: insufficient stock for barang %d: have %d, need %d (detail index %d)", apperr.ErrInsufficientStock, d.BarangID, before, d.Qty, i))
         }
         after := before - d.Qty
 
@@ -98,24 +100,51 @@ func (r *PenjualanRepo) CreatePenjualanTx(ctx context.Context, hdr *models.JualH
     return nil
 }
 
-func (r *PenjualanRepo) GetAll(ctx context.Context) ([]models.JualHeader, error) {
-    const q = `SELECT id, no_faktur, customer, total, user_id, status, created_at
-               FROM jual_header
-               ORDER BY created_at DESC`
-    rows, err := r.DB.QueryContext(ctx, q)
-    if err != nil { return nil, fmt.Errorf("query headers: %w", err) }
+func (r *PenjualanRepo) GetAll(ctx context.Context, from, to *time.Time, page, limit int) ([]models.JualHeader, int, error) {
+    where := make([]string, 0)
+    args := make([]interface{}, 0)
+    idx := 1
+    if from != nil {
+        where = append(where, fmt.Sprintf("created_at >= $%d", idx))
+        args = append(args, *from)
+        idx++
+    }
+    if to != nil {
+        where = append(where, fmt.Sprintf("created_at <= $%d", idx))
+        args = append(args, *to)
+        idx++
+    }
+    countQ := "SELECT COUNT(*) FROM jual_header"
+    if len(where) > 0 {
+        countQ += " WHERE " + strings.Join(where, " AND ")
+    }
+    var total int
+    if err := r.DB.QueryRowContext(ctx, countQ, args...).Scan(&total); err != nil {
+        return nil, 0, fmt.Errorf("count headers: %w", err)
+    }
+
+    dataQ := "SELECT id, no_faktur, customer, total, user_id, status, created_at FROM jual_header"
+    if len(where) > 0 {
+        dataQ += " WHERE " + strings.Join(where, " AND ")
+    }
+    dataQ += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", idx, idx+1)
+    offset := (page - 1) * limit
+    args = append(args, limit, offset)
+
+    rows, err := r.DB.QueryContext(ctx, dataQ, args...)
+    if err != nil { return nil, 0, fmt.Errorf("query headers: %w", err) }
     defer rows.Close()
 
     list := make([]models.JualHeader, 0)
     for rows.Next() {
         var h models.JualHeader
         if err := rows.Scan(&h.ID, &h.NoFaktur, &h.Customer, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
-            return nil, fmt.Errorf("scan header: %w", err)
+            return nil, 0, fmt.Errorf("scan header: %w", err)
         }
         list = append(list, h)
     }
-    if err := rows.Err(); err != nil { return nil, fmt.Errorf("rows err: %w", err) }
-    return list, nil
+    if err := rows.Err(); err != nil { return nil, 0, fmt.Errorf("rows err: %w", err) }
+    return list, total, nil
 }
 
 func (r *PenjualanRepo) GetByID(ctx context.Context, id int64) (*models.JualHeader, error) {
@@ -161,4 +190,41 @@ func (r *PenjualanRepo) GetByID(ctx context.Context, id int64) (*models.JualHead
     if err := rows.Err(); err != nil { return nil, fmt.Errorf("rows err: %w", err) }
     h.Details = details
     return &h, nil
+}
+
+// GetReport returns penjualan headers filtered by optional date range.
+func (r *PenjualanRepo) GetReport(ctx context.Context, from, to *time.Time) ([]models.JualHeader, error) {
+    where := make([]string, 0)
+    args := make([]interface{}, 0)
+    idx := 1
+    if from != nil {
+        where = append(where, fmt.Sprintf("created_at >= $%d", idx))
+        args = append(args, *from)
+        idx++
+    }
+    if to != nil {
+        where = append(where, fmt.Sprintf("created_at <= $%d", idx))
+        args = append(args, *to)
+        idx++
+    }
+    q := "SELECT id, no_faktur, customer, total, user_id, status, created_at FROM jual_header"
+    if len(where) > 0 {
+        q += " WHERE " + strings.Join(where, " AND ")
+    }
+    q += " ORDER BY created_at DESC"
+
+    rows, err := r.DB.QueryContext(ctx, q, args...)
+    if err != nil { return nil, fmt.Errorf("query report: %w", err) }
+    defer rows.Close()
+
+    list := make([]models.JualHeader, 0)
+    for rows.Next() {
+        var h models.JualHeader
+        if err := rows.Scan(&h.ID, &h.NoFaktur, &h.Customer, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
+            return nil, fmt.Errorf("scan header: %w", err)
+        }
+        list = append(list, h)
+    }
+    if err := rows.Err(); err != nil { return nil, fmt.Errorf("rows err: %w", err) }
+    return list, nil
 }

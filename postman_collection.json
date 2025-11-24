@@ -3,8 +3,49 @@
     "name": "Warehouse Inventory API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [{ "key": "baseUrl", "value": "http://localhost:8080" }],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" }
+  ],
   "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  let json = pm.response.json();",
+                  "  if (json && json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('token', json.data.token);",
+                  "    console.log('Token set to collection variable');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"<your-password>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "Master Data",
       "item": [
@@ -12,6 +53,7 @@
           "name": "List Barang",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/barang",
               "host": ["{{baseUrl}}"],
@@ -23,6 +65,7 @@
           "name": "List Barang (Pagination + Search)",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/barang?page=1&limit=5&search=kaos",
               "host": ["{{baseUrl}}"],
@@ -39,6 +82,7 @@
           "name": "Get Barang by ID",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/barang/1",
               "host": ["{{baseUrl}}"],
@@ -50,7 +94,10 @@
           "name": "Create Barang",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih\",\n  \"deskripsi\": \"Kaos cotton combed 30s\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 45000,\n  \"harga_jual\": 65000\n}"
@@ -66,7 +113,10 @@
           "name": "Update Barang",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih - Update\",\n  \"deskripsi\": \"Kaos cotton combed 30s (updated)\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 46000,\n  \"harga_jual\": 70000\n}"
@@ -82,6 +132,7 @@
           "name": "Delete Barang",
           "request": {
             "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/barang/1",
               "host": ["{{baseUrl}}"],
@@ -98,6 +149,7 @@
           "name": "Get All Stok",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/stok",
               "host": ["{{baseUrl}}"],
@@ -109,6 +161,7 @@
           "name": "Get Stok by Barang",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/stok/1",
               "host": ["{{baseUrl}}"],
@@ -117,24 +170,34 @@
           }
         },
         {
-          "name": "Get History Stok",
+          "name": "Get History Stok (Pagination)",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/history-stok",
+              "raw": "{{baseUrl}}/api/history-stok?page=1&limit=10",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "history-stok"]
+              "path": ["api", "history-stok"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
             }
           }
         },
         {
-          "name": "Get History by Barang",
+          "name": "Get History by Barang (Pagination)",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/history-stok/1",
+              "raw": "{{baseUrl}}/api/history-stok/1?page=1&limit=10",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "history-stok", "1"]
+              "path": ["api", "history-stok", "1"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
             }
           }
         }
@@ -147,10 +210,13 @@
           "name": "Create Pembelian",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"no_faktur\": \"PB-2025-0001\",\n  \"supplier\": \"PT Sumber Makmur\",\n  \"user_id\": 1,\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 10, \"harga\": 40000 },\n    { \"barang_id\": 2, \"qty\": 5, \"harga\": 80000 }\n  ]\n}"
+              "raw": "{\n  \"no_faktur\": \"PB-2025-0001\",\n  \"supplier\": \"PT Sumber Makmur\",\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 10, \"harga\": 40000 },\n    { \"barang_id\": 2, \"qty\": 5, \"harga\": 80000 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/pembelian",
@@ -160,13 +226,20 @@
           }
         },
         {
-          "name": "Get All Pembelian",
+          "name": "Get All Pembelian (Paged + Filter)",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/pembelian",
+              "raw": "{{baseUrl}}/api/pembelian?page=1&limit=10&from=2025-01-01&to=2025-01-31",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "pembelian"]
+              "path": ["api", "pembelian"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "from", "value": "2025-01-01" },
+                { "key": "to", "value": "2025-01-31" }
+              ]
             }
           }
         },
@@ -174,6 +247,7 @@
           "name": "Get Detail Pembelian",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/pembelian/1",
               "host": ["{{baseUrl}}"],
@@ -185,10 +259,13 @@
           "name": "Create Penjualan",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"no_faktur\": \"PJ-2025-0001\",\n  \"customer\": \"Budi Santoso\",\n  \"user_id\": 1,\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 3, \"harga\": 65000 },\n    { \"barang_id\": 2, \"qty\": 1, \"harga\": 120000 }\n  ]\n}"
+              "raw": "{\n  \"no_faktur\": \"PJ-2025-0001\",\n  \"customer\": \"Budi Santoso\",\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 3, \"harga\": 65000 },\n    { \"barang_id\": 2, \"qty\": 1, \"harga\": 120000 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/penjualan",
@@ -198,13 +275,20 @@
           }
         },
         {
-          "name": "Get All Penjualan",
+          "name": "Get All Penjualan (Paged + Filter)",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/penjualan",
+              "raw": "{{baseUrl}}/api/penjualan?page=1&limit=10&from=2025-01-01&to=2025-01-31",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "penjualan"]
+              "path": ["api", "penjualan"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "from", "value": "2025-01-01" },
+                { "key": "to", "value": "2025-01-31" }
+              ]
             }
           }
         },
@@ -212,10 +296,60 @@
           "name": "Get Detail Penjualan",
           "request": {
             "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/penjualan/1",
               "host": ["{{baseUrl}}"],
               "path": ["api", "penjualan", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Laporan",
+      "item": [
+        {
+          "name": "Laporan Stok",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/laporan/stok",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laporan", "stok"]
+            }
+          }
+        },
+        {
+          "name": "Laporan Penjualan (Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/laporan/penjualan?from=2025-01-01&to=2025-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laporan", "penjualan"],
+              "query": [
+                { "key": "from", "value": "2025-01-01" },
+                { "key": "to", "value": "2025-01-31" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Laporan Pembelian (Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/laporan/pembelian?from=2025-01-01&to=2025-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "laporan", "pembelian"],
+              "query": [
+                { "key": "from", "value": "2025-01-01" },
+                { "key": "to", "value": "2025-01-31" }
+              ]
             }
           }
         }

@@ -162,3 +162,20 @@ func (r *BarangRepo) GetAllWithStok(ctx context.Context) ([]models.BarangWithSto
     if err := rows.Err(); err != nil { return nil, err }
     return list, nil
 }
+
+func (r *BarangRepo) GetWithStokByID(ctx context.Context, id int64) (*models.BarangWithStok, error) {
+    const q = `SELECT b.id, b.kode_barang, b.nama_barang, b.deskripsi, b.satuan, b.harga_beli, b.harga_jual,
+        COALESCE(s.stok_akhir,0) AS stok_akhir
+        FROM master_barang b
+        LEFT JOIN mstok s ON s.barang_id = b.id
+        WHERE b.id = $1`
+    var ds sql.NullString
+    var item models.BarangWithStok
+    err := r.DB.QueryRowContext(ctx, q, id).Scan(&item.ID, &item.KodeBarang, &item.NamaBarang, &ds, &item.Satuan, &item.HargaBeli, &item.HargaJual, &item.StokAkhir)
+    if err != nil {
+        if err == sql.ErrNoRows { return nil, nil }
+        return nil, err
+    }
+    if ds.Valid { v := ds.String; item.Deskripsi = &v }
+    return &item, nil
+}

@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"warehouse/apperr"
 	"warehouse/models"
 )
 
@@ -16,14 +18,40 @@ type PembelianRepo struct {
 
 func NewPembelianRepo(db *sql.DB) *PembelianRepo { return &PembelianRepo{DB: db} }
 
-func (r *PembelianRepo) GetAll(ctx context.Context) ([]models.BeliHeader, error) {
-    const q = `SELECT id, no_faktur, supplier, total, user_id, status, created_at
-               FROM beli_header
-               ORDER BY created_at DESC`
+func (r *PembelianRepo) GetAll(ctx context.Context, from, to *time.Time, page, limit int) ([]models.BeliHeader, int, error) {
+    where := make([]string, 0)
+    args := make([]interface{}, 0)
+    idx := 1
+    if from != nil {
+        where = append(where, fmt.Sprintf("created_at >= $%d", idx))
+        args = append(args, *from)
+        idx++
+    }
+    if to != nil {
+        where = append(where, fmt.Sprintf("created_at <= $%d", idx))
+        args = append(args, *to)
+        idx++
+    }
+    countQ := "SELECT COUNT(*) FROM beli_header"
+    if len(where) > 0 {
+        countQ += " WHERE " + strings.Join(where, " AND ")
+    }
+    var total int
+    if err := r.DB.QueryRowContext(ctx, countQ, args...).Scan(&total); err != nil {
+        return nil, 0, fmt.Errorf("count headers: %w", err)
+    }
 
-    rows, err := r.DB.QueryContext(ctx, q)
+    dataQ := "SELECT id, no_faktur, supplier, total, user_id, status, created_at FROM beli_header"
+    if len(where) > 0 {
+        dataQ += " WHERE " + strings.Join(where, " AND ")
+    }
+    dataQ += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", idx, idx+1)
+    offset := (page - 1) * limit
+    args = append(args, limit, offset)
+
+    rows, err := r.DB.QueryContext(ctx, dataQ, args...)
     if err != nil {
-        return nil, fmt.Errorf("query headers: %w", err)
+        return nil, 0, fmt.Errorf("query headers: %w", err)
     }
     defer rows.Close()
 
@@ -31,14 +59,14 @@ func (r *PembelianRepo) GetAll(ctx context.Context) ([]models.BeliHeader, error)
     for rows.Next() {
         var h models.BeliHeader
         if err := rows.Scan(&h.ID, &h.NoFaktur, &h.Supplier, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
-            return nil, fmt.Errorf("scan header: %w", err)
+            return nil, 0, fmt.Errorf("scan header: %w", err)
         }
         list = append(list, h)
     }
     if err := rows.Err(); err != nil {
-        return nil, fmt.Errorf("rows err: %w", err)
+        return nil, 0, fmt.Errorf("rows err: %w", err)
     }
-    return list, nil
+    return list, total, nil
 }
 
 func (r *PembelianRepo) GetByID(ctx context.Context, id int64) (*models.BeliHeader, error) {
@@ -110,7 +138,7 @@ func (r *PembelianRepo) CreatePembelianTx(ctx context.Context, hdr *models.BeliH
         var exists bool
         if err := tx.QueryRowContext(ctx, "SELECT 1 FROM master_barang WHERE id=$1", d.BarangID).Scan(&exists); err != nil {
             if err == sql.ErrNoRows {
-                return rollback(fmt.Errorf("barang id %d not found (detail index %d)", d.BarangID, i))
+                return rollback(fmt.Errorf("%w: barang id %d not found (detail index %d)", apperr.ErrNotFound, d.BarangID, i))
             }
             return rollback(fmt.Errorf("validate barang: %w", err))
         }
@@ -119,8 +147,8 @@ func (r *PembelianRepo) CreatePembelianTx(ctx context.Context, hdr *models.BeliH
     var total int64
     for i := range hdr.Details {
         d := &hdr.Details[i]
-        if d.Qty <= 0 { return rollback(fmt.Errorf("qty must be > 0 for barang %d", d.BarangID)) }
-        if d.Harga < 0 { return rollback(fmt.Errorf("harga must be >= 0 for barang %d", d.BarangID)) }
+        if d.Qty <= 0 { return rollback(fmt.Errorf("%w: qty must be > 0 for barang %d", apperr.ErrValidation, d.BarangID)) }
+        if d.Harga < 0 { return rollback(fmt.Errorf("%w: harga must be >= 0 for barang %d", apperr.ErrValidation, d.BarangID)) }
         if d.Subtotal == 0 { d.Subtotal = d.Qty * d.Harga }
         total += d.Subtotal
     }
@@ -169,4 +197,41 @@ func (r *PembelianRepo) CreatePembelianTx(ctx context.Context, hdr *models.BeliH
     }
     if hdr.CreatedAt.IsZero() { hdr.CreatedAt = time.Now() }
     return nil
+}
+
+// GetReport returns pembelian headers filtered by optional date range.
+func (r *PembelianRepo) GetReport(ctx context.Context, from, to *time.Time) ([]models.BeliHeader, error) {
+    where := make([]string, 0)
+    args := make([]interface{}, 0)
+    idx := 1
+    if from != nil {
+        where = append(where, fmt.Sprintf("created_at >= $%d", idx))
+        args = append(args, *from)
+        idx++
+    }
+    if to != nil {
+        where = append(where, fmt.Sprintf("created_at <= $%d", idx))
+        args = append(args, *to)
+        idx++
+    }
+    q := "SELECT id, no_faktur, supplier, total, user_id, status, created_at FROM beli_header"
+    if len(where) > 0 {
+        q += " WHERE " + strings.Join(where, " AND ")
+    }
+    q += " ORDER BY created_at DESC"
+
+    rows, err := r.DB.QueryContext(ctx, q, args...)
+    if err != nil { return nil, fmt.Errorf("query report: %w", err) }
+    defer rows.Close()
+
+    list := make([]models.BeliHeader, 0)
+    for rows.Next() {
+        var h models.BeliHeader
+        if err := rows.Scan(&h.ID, &h.NoFaktur, &h.Supplier, &h.Total, &h.UserID, &h.Status, &h.CreatedAt); err != nil {
+            return nil, fmt.Errorf("scan header: %w", err)
+        }
+        list = append(list, h)
+    }
+    if err := rows.Err(); err != nil { return nil, fmt.Errorf("rows err: %w", err) }
+    return list, nil
 }
