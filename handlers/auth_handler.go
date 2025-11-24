@@ -1,15 +1,14 @@
 package handlers
 
 import (
-	"context"
-	"encoding/json"
-	"net/http"
-	"time"
+    "context"
+    "encoding/json"
+    "net/http"
+    "time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
+    "golang.org/x/crypto/bcrypt"
 
-	"warehouse/repositories"
+    "warehouse/repositories"
 )
 
 type AuthHandler struct {
@@ -21,6 +20,10 @@ func NewAuthHandler(users *repositories.UserRepo) *AuthHandler { return &AuthHan
 type loginRequest struct {
     Username string `json:"username"`
     Password string `json:"password"`
+}
+
+type refreshRequest struct {
+    RefreshToken string `json:"refresh_token"`
 }
 
 // jwtSecret shared with middleware; keep simple by duplicating constant if needed.
@@ -52,17 +55,62 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
         WriteJSON(w, http.StatusUnauthorized, APIResponse{Success: false, Message: "invalid credentials"})
         return
     }
-    // Create token
-    claims := jwt.MapClaims{
-        "user_id": u.ID,
-        "role":    u.Role,
-        "exp":     time.Now().Add(1 * time.Hour).Unix(),
-    }
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    tokenStr, err := token.SignedString(jwtSecret)
+    // Generate access (15m) & refresh (7d) tokens.
+    accessToken, err := GenerateAccessToken(u.ID, u.Role)
     if err != nil {
-        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: "failed to sign token"})
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: "failed to generate access token"})
         return
     }
-    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "Login success", Data: map[string]string{"token": tokenStr}})
+    refreshToken, err := GenerateRefreshToken(u.ID, u.Role)
+    if err != nil {
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: "failed to generate refresh token"})
+        return
+    }
+    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "Login success", Data: map[string]string{
+        "access_token":  accessToken,
+        "refresh_token": refreshToken,
+    }})
+}
+
+// POST /api/refresh
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+    var req refreshRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        WriteJSON(w, http.StatusBadRequest, APIResponse{Success: false, Message: "invalid json"})
+        return
+    }
+    if req.RefreshToken == "" {
+        WriteJSON(w, http.StatusBadRequest, APIResponse{Success: false, Message: "refresh_token required"})
+        return
+    }
+    claims, err := ParseAndValidateRefresh(req.RefreshToken)
+    if err != nil {
+        WriteJSON(w, http.StatusUnauthorized, APIResponse{Success: false, Message: "invalid refresh token"})
+        return
+    }
+    expVal, ok := claims["exp"].(float64)
+    if !ok || time.Unix(int64(expVal), 0).Before(time.Now()) {
+        WriteJSON(w, http.StatusUnauthorized, APIResponse{Success: false, Message: "refresh token expired"})
+        return
+    }
+    uidFloat, okUID := claims["user_id"].(float64)
+    role, okRole := claims["role"].(string)
+    if !okUID || !okRole {
+        WriteJSON(w, http.StatusUnauthorized, APIResponse{Success: false, Message: "invalid token claims"})
+        return
+    }
+    accessToken, err := GenerateAccessToken(int64(uidFloat), role)
+    if err != nil {
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: "failed to generate access token"})
+        return
+    }
+    newRefresh, err := GenerateRefreshToken(int64(uidFloat), role)
+    if err != nil {
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: "failed to generate refresh token"})
+        return
+    }
+    WriteJSON(w, http.StatusOK, APIResponse{Success: true, Message: "Token refreshed", Data: map[string]string{
+        "access_token":  accessToken,
+        "refresh_token": newRefresh,
+    }})
 }
