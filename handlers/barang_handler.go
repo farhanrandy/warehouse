@@ -91,13 +91,21 @@ func (h *BarangHandler) Create(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if b.KodeBarang == "" || b.NamaBarang == "" || b.Satuan == "" {
-        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required"})
+    // Do not accept kode_barang from client; it will be generated server-side
+    if b.NamaBarang == "" || b.Satuan == "" {
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "nama_barang and satuan are required"})
         return
     }
 
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
+    // Auto-generate kode_barang with format BRG-0001, BRG-0002, ...
+    kode, err := h.Repo.GenerateKodeBarang(ctx)
+    if err != nil {
+        WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
+        return
+    }
+    b.KodeBarang = kode
     if err := h.Repo.Create(ctx, &b); err != nil {
         WriteJSON(w, http.StatusInternalServerError, APIResponse{Success: false, Message: err.Error()})
         return
@@ -122,8 +130,8 @@ func (h *BarangHandler) UpdateBarang(w http.ResponseWriter, r *http.Request) {
     // Enforce ID from path to avoid mismatch
     b.ID = id
 
-    if b.KodeBarang == "" || b.NamaBarang == "" || b.Satuan == "" {
-        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "kode_barang, nama_barang, satuan are required"})
+    if b.NamaBarang == "" || b.Satuan == "" {
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "nama_barang and satuan are required"})
         return
     }
 
@@ -158,6 +166,10 @@ func (h *BarangHandler) DeleteBarang(w http.ResponseWriter, r *http.Request) {
     ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
     defer cancel()
     if err := h.Repo.Delete(ctx, id); err != nil {
+        if err == repositories.ErrBarangInUse {
+            WriteJSON(w, http.StatusConflict, APIResponse{Success: false, Message: "Barang sudah dipakai di transaksi dan tidak dapat dihapus"})
+            return
+        }
         if err == sql.ErrNoRows {
             WriteJSON(w, http.StatusNotFound, APIResponse{Success: false, Message: "not found"})
             return
