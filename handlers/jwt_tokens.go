@@ -12,7 +12,7 @@ import (
 // Reuse existing secret defined also in auth_handler.go and middleware.
 var (
     accessTTL  = 15 * time.Minute
-    refreshTTL = 7 * 24 * time.Hour
+    refreshTTL = 1 * 24 * time.Hour
 )
 
 // GenerateAccessToken returns a short-lived JWT string.

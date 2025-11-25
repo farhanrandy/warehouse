@@ -64,7 +64,7 @@ curl http://localhost:8080/health
 The API uses a pair of JWT tokens:
 
 - Access Token: expires in 15 minutes
-- Refresh Token: expires in 7 days
+- Refresh Token: expires in 1 days
 
 Public endpoints:
 

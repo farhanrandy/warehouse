@@ -20,11 +20,11 @@ INSERT INTO users (username, password, email, full_name, role) VALUES
 
 -- Master Barang (Item A, B, C, D)
 INSERT INTO master_barang (kode_barang, nama_barang, deskripsi, satuan, harga_beli, harga_jual) VALUES
-('LAP001', 'Laptop Gaming X5', 'Laptop 15 inci, 16GB RAM', 'unit', 15000000, 17500000),
-('MOUSE01', 'Mouse Wireless Silent', 'Mouse logitech M100', 'pcs', 250000, 300000),
-('MONI03', 'Monitor 24 inch LED', 'Monitor 144Hz', 'unit', 1800000, 2200000),
-('KEYB02', 'Keyboard Mechanical', 'Outemu Red Switch', 'pcs', 750000, 900000),
-('KBL01', 'Kabel HDMI 2 Meter', 'Kabel data video', 'pcs', 45000, 60000);
+('BRG-001', 'Laptop Gaming X5', 'Laptop 15 inci, 16GB RAM', 'unit', 15000000, 17500000),
+('BRG-002', 'Mouse Wireless Silent', 'Mouse logitech M100', 'pcs', 250000, 300000),
+('BRG-003', 'Monitor 24 inch LED', 'Monitor 144Hz', 'unit', 1800000, 2200000),
+('BRG-004', 'Keyboard Mechanical', 'Outemu Red Switch', 'pcs', 750000, 900000),
+('BRG-005', 'Kabel HDMI 2 Meter', 'Kabel data video', 'pcs', 45000, 60000);
 
 -- MStok (Stok Awal)
 INSERT INTO mstok (barang_id, stok_akhir) VALUES
@@ -38,14 +38,14 @@ INSERT INTO mstok (barang_id, stok_akhir) VALUES
 
 -- Insert Pembelian Header & Detail (User ID 1 = admin)
 INSERT INTO beli_header (no_faktur, supplier, total, user_id, status) VALUES
-('BLI001', 'PT Supplier Elektronik', 32500000, 1, 'selesai');
+('BELI-001', 'PT Supplier Elektronik', 32500000, 1, 'selesai');
 INSERT INTO beli_detail (beli_header_id, barang_id, qty, harga, subtotal) VALUES
 (1, 1, 10, 1500000, 15000000), -- Beli 10 Laptop (harga harusnya 15 juta, tapi di contoh 1.5 juta)
 (1, 2, 50, 250000, 12500000); -- Beli 50 Mouse
 
 -- Insert Penjualan Header & Detail (User ID 2 = user1)
 INSERT INTO jual_header (no_faktur, customer, total, user_id, status) VALUES
-('JUAL001', 'Budi Santoso', 18700000, 2, 'selesai');
+('JUAL-001', 'Budi Santoso', 18700000, 2, 'selesai');
 INSERT INTO jual_detail (jual_header_id, barang_id, qty, harga, subtotal) VALUES
 (1, 1, 1, 17500000, 17500000), -- Jual 1 Laptop
 (1, 2, 4, 300000, 1200000); -- Jual 4 Mouse
