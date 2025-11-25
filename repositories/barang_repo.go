@@ -3,8 +3,12 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"warehouse/models"
+
+	"github.com/lib/pq"
 )
 
 type BarangRepo struct {
@@ -12,6 +16,9 @@ type BarangRepo struct {
 }
 
 func NewBarangRepo(db *sql.DB) *BarangRepo { return &BarangRepo{DB: db} }
+
+// ErrBarangInUse is returned when a barang cannot be deleted due to FK references
+var ErrBarangInUse = errors.New("barang in use")
 
 func (r *BarangRepo) GetAll(ctx context.Context, search string, page, limit int) ([]models.Barang, int, error) {
     if page < 1 { page = 1 }
@@ -110,14 +117,13 @@ func (r *BarangRepo) Create(ctx context.Context, b *models.Barang) error {
 func (r *BarangRepo) Update(ctx context.Context, b *models.Barang) error {
     const q = `
         UPDATE master_barang
-        SET kode_barang=$1, nama_barang=$2, deskripsi=$3, satuan=$4, harga_beli=$5, harga_jual=$6
-        WHERE id=$7`
+        SET nama_barang=$1, deskripsi=$2, satuan=$3, harga_beli=$4, harga_jual=$5
+        WHERE id=$6`
 
     var ds interface{}
     if b.Deskripsi == nil { ds = nil } else { ds = *b.Deskripsi }
 
     res, err := r.DB.ExecContext(ctx, q,
-        b.KodeBarang,
         b.NamaBarang,
         ds,
         b.Satuan,
@@ -134,10 +140,34 @@ func (r *BarangRepo) Update(ctx context.Context, b *models.Barang) error {
 func (r *BarangRepo) Delete(ctx context.Context, id int64) error {
     const q = `DELETE FROM master_barang WHERE id=$1`
     res, err := r.DB.ExecContext(ctx, q, id)
-    if err != nil { return err }
+    if err != nil {
+        if pqErr, ok := err.(*pq.Error); ok {
+            // 23503 = foreign_key_violation
+            if string(pqErr.Code) == "23503" {
+                return ErrBarangInUse
+            }
+        }
+        return err
+    }
     n, _ := res.RowsAffected()
     if n == 0 { return sql.ErrNoRows }
     return nil
+}
+
+// GenerateKodeBarang generates a new kode_barang with format BRG-0001, BRG-0002, ...
+// It finds the highest numeric suffix among existing codes with prefix BRG- and increments it.
+func (r *BarangRepo) GenerateKodeBarang(ctx context.Context) (string, error) {
+    const q = `
+        SELECT COALESCE(MAX(CAST(SUBSTRING(kode_barang FROM '[0-9]+') AS INTEGER)), 0)
+        FROM master_barang
+        WHERE kode_barang LIKE 'BRG-%'`
+
+    var maxNum int
+    if err := r.DB.QueryRowContext(ctx, q).Scan(&maxNum); err != nil {
+        return "", err
+    }
+    next := maxNum + 1
+    return fmt.Sprintf("BRG-%04d", next), nil
 }
 
 func (r *BarangRepo) GetAllWithStok(ctx context.Context) ([]models.BarangWithStok, error) {

@@ -32,12 +32,12 @@ func (h *PembelianHandler) CreatePembelianHandler(w http.ResponseWriter, r *http
     }
 
     // Basic validation before hitting DB.
-    if hdr.NoFaktur == "" || hdr.Supplier == "" || len(hdr.Details) == 0 {
-        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "no_faktur, supplier, details required"})
+    if hdr.Supplier == "" || len(hdr.Details) == 0 {
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "supplier, details required"})
         return
     }
     for i, d := range hdr.Details {
-        if d.BarangID <= 0 || d.Qty <= 0 || d.Harga < 0 {
+        if d.BarangID <= 0 || d.Qty <= 0 {
             WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "invalid detail at index " + strconv.Itoa(i)})
             return
         }

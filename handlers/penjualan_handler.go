@@ -31,12 +31,12 @@ func (h *PenjualanHandler) CreatePenjualanHandler(w http.ResponseWriter, r *http
         return
     }
 
-    if hdr.NoFaktur == "" || hdr.Customer == "" || len(hdr.Details) == 0 {
-        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "no_faktur, customer, details required"})
+    if hdr.Customer == "" || len(hdr.Details) == 0 {
+        WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "customer, details required"})
         return
     }
     for i, d := range hdr.Details {
-        if d.BarangID <= 0 || d.Qty <= 0 || d.Harga < 0 {
+        if d.BarangID <= 0 || d.Qty <= 0 {
             WriteJSON(w, http.StatusUnprocessableEntity, APIResponse{Success: false, Message: "invalid detail at index " + strconv.Itoa(i)})
             return
         }
