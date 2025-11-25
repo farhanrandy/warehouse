@@ -18,6 +18,21 @@ type PenjualanRepo struct {
 
 func NewPenjualanRepo(db *sql.DB) *PenjualanRepo { return &PenjualanRepo{DB: db} }
 
+// GenerateNoFakturPenjualan generates JUAL001, JUAL002, etc.
+func (r *PenjualanRepo) GenerateNoFakturPenjualan(ctx context.Context, tx *sql.Tx) (string, error) {
+    const q = `
+        SELECT COALESCE(MAX(CAST(SUBSTRING(no_faktur FROM '[0-9]+') AS INTEGER)), 0)
+        FROM jual_header
+        WHERE no_faktur LIKE 'JUAL-%'`
+
+    var maxNum int
+    if err := tx.QueryRowContext(ctx, q).Scan(&maxNum); err != nil {
+        return "", err
+    }
+    next := maxNum + 1
+    return fmt.Sprintf("JUAL-%03d", next), nil
+}
+
 func (r *PenjualanRepo) CreatePenjualanTx(ctx context.Context, hdr *models.JualHeader) error {
     if hdr == nil { return errors.New("header is nil") }
     if len(hdr.Details) == 0 { return errors.New("details empty") }
@@ -30,15 +45,24 @@ func (r *PenjualanRepo) CreatePenjualanTx(ctx context.Context, hdr *models.JualH
         return e
     }
 
+    // Auto-generate no_faktur
+    faktur, err := r.GenerateNoFakturPenjualan(ctx, tx)
+    if err != nil {
+        return rollback(fmt.Errorf("generate no_faktur: %w", err))
+    }
+    hdr.NoFaktur = faktur
+
     for i := range hdr.Details {
         d := &hdr.Details[i]
         var exists bool
-        if err := tx.QueryRowContext(ctx, "SELECT 1 FROM master_barang WHERE id=$1", d.BarangID).Scan(&exists); err != nil {
+        var hargaJual int64
+        if err := tx.QueryRowContext(ctx, "SELECT 1, harga_jual FROM master_barang WHERE id=$1", d.BarangID).Scan(&exists, &hargaJual); err != nil {
             if err == sql.ErrNoRows {
                 return rollback(fmt.Errorf("barang id %d not found (detail index %d)", d.BarangID, i))
             }
             return rollback(fmt.Errorf("validate barang: %w", err))
         }
+        d.Harga = hargaJual
     }
 
     var total int64

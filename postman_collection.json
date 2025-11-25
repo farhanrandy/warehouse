@@ -143,7 +143,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih\",\n  \"deskripsi\": \"Kaos cotton combed 30s\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 45000,\n  \"harga_jual\": 65000\n}"
+              "raw": "{\n  \"nama_barang\": \"Kaos Polos Putih\",\n  \"deskripsi\": \"Kaos cotton combed 30s\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 45000,\n  \"harga_jual\": 65000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/barang",
@@ -162,7 +162,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"kode_barang\": \"BRG-001\",\n  \"nama_barang\": \"Kaos Polos Putih - Update\",\n  \"deskripsi\": \"Kaos cotton combed 30s (updated)\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 46000,\n  \"harga_jual\": 70000\n}"
+              "raw": "{\n  \"nama_barang\": \"Kaos Polos Putih - Update\",\n  \"deskripsi\": \"Kaos cotton combed 30s (updated)\",\n  \"satuan\": \"pcs\",\n  \"harga_beli\": 46000,\n  \"harga_jual\": 70000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/barang/1",
@@ -269,7 +269,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"no_faktur\": \"PB-2025-0001\",\n  \"supplier\": \"PT Sumber Makmur\",\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 10, \"harga\": 40000 },\n    { \"barang_id\": 2, \"qty\": 5, \"harga\": 80000 }\n  ]\n}"
+              "raw": "{\n  \"supplier\": \"PT Sumber Makmur\",\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 10 },\n    { \"barang_id\": 2, \"qty\": 5 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/pembelian",
@@ -322,7 +322,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"no_faktur\": \"PJ-2025-0001\",\n  \"customer\": \"Budi Santoso\",\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 3, \"harga\": 65000 },\n    { \"barang_id\": 2, \"qty\": 1, \"harga\": 120000 }\n  ]\n}"
+              "raw": "{\n  \"customer\": \"Budi Santoso\",\n  \"status\": \"completed\",\n  \"details\": [\n    { \"barang_id\": 1, \"qty\": 3 },\n    { \"barang_id\": 2, \"qty\": 1 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/penjualan",

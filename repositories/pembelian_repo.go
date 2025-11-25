@@ -18,6 +18,21 @@ type PembelianRepo struct {
 
 func NewPembelianRepo(db *sql.DB) *PembelianRepo { return &PembelianRepo{DB: db} }
 
+// GenerateNoFakturPembelian generates BELI001, BELI002, etc.
+func (r *PembelianRepo) GenerateNoFakturPembelian(ctx context.Context, tx *sql.Tx) (string, error) {
+    const q = `
+        SELECT COALESCE(MAX(CAST(SUBSTRING(no_faktur FROM '[0-9]+') AS INTEGER)), 0)
+        FROM beli_header
+        WHERE no_faktur LIKE 'BELI-%'`
+
+    var maxNum int
+    if err := tx.QueryRowContext(ctx, q).Scan(&maxNum); err != nil {
+        return "", err
+    }
+    next := maxNum + 1
+    return fmt.Sprintf("BELI-%03d", next), nil
+}
+
 func (r *PembelianRepo) GetAll(ctx context.Context, from, to *time.Time, page, limit int) ([]models.BeliHeader, int, error) {
     where := make([]string, 0)
     args := make([]interface{}, 0)
@@ -134,14 +149,24 @@ func (r *PembelianRepo) CreatePembelianTx(ctx context.Context, hdr *models.BeliH
         return e
     }
 
-    for i, d := range hdr.Details {
+    // Auto-generate no_faktur
+    faktur, err := r.GenerateNoFakturPembelian(ctx, tx)
+    if err != nil {
+        return rollback(fmt.Errorf("generate no_faktur: %w", err))
+    }
+    hdr.NoFaktur = faktur
+
+    for i := range hdr.Details {
+        d := &hdr.Details[i]
         var exists bool
-        if err := tx.QueryRowContext(ctx, "SELECT 1 FROM master_barang WHERE id=$1", d.BarangID).Scan(&exists); err != nil {
+        var hargaBeli int64
+        if err := tx.QueryRowContext(ctx, "SELECT 1, harga_beli FROM master_barang WHERE id=$1", d.BarangID).Scan(&exists, &hargaBeli); err != nil {
             if err == sql.ErrNoRows {
                 return rollback(fmt.Errorf("%w: barang id %d not found (detail index %d)", apperr.ErrNotFound, d.BarangID, i))
             }
             return rollback(fmt.Errorf("validate barang: %w", err))
         }
+        d.Harga = hargaBeli
     }
 
     var total int64
