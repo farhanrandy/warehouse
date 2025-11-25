@@ -1,13 +1,14 @@
 package repositories
 
 import (
-    "context"
-    "database/sql"
-    "errors"
-    "fmt"
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 
-    "github.com/lib/pq"
-    "warehouse/models"
+	"warehouse/models"
+
+	"github.com/lib/pq"
 )
 
 type BarangRepo struct {
